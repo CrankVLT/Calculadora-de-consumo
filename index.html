@@ -3,10 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Calculadora Luz Compartida</title>
+  <title>Calculadora Luz</title>
   
-  <!-- Estilos (Tailwind CSS) -->
+  <!-- Estilos (Tailwind CSS) con configuración de Modo Oscuro -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: { 
+              850: '#1e293b', 
+              900: '#0f172a',
+              950: '#020617' 
+            }
+          }
+        }
+      }
+    }
+  </script>
   
   <!-- Motor React -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -17,48 +33,19 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
-    /* --- ESTILOS CRÍTICOS DE IMPRESIÓN (PDF) --- */
+    /* --- ESTILOS CRÍTICOS DE IMPRESIÓN --- */
     @media print {
-      @page {
-        size: letter; 
-        margin: 0; 
-      }
-      
-      body {
-        background: white;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-
+      @page { size: letter; margin: 0; }
+      body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body * { visibility: hidden; }
-
+      
       #root, .modal-overlay, .max-w-sm, .max-w-md {
-        position: static !important;
-        overflow: visible !important;
-        height: auto !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        transform: none !important;
-        box-shadow: none !important;
-        border: none !important;
+        position: static !important; overflow: visible !important; height: auto !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; transform: none !important; box-shadow: none !important; border: none !important;
       }
 
       #area-impresion, #area-impresion * { visibility: visible; }
-
       #area-impresion {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        min-height: 100vh;
-        margin: 0;
-        padding: 2.5cm; 
-        background: white;
-        color: black;
-        font-family: sans-serif;
-        z-index: 9999;
+        position: absolute; left: 0; top: 0; width: 100%; min-height: 100vh; margin: 0; padding: 2.5cm; background: white; color: black; font-family: sans-serif; z-index: 9999;
       }
       
       #area-impresion h2 { font-size: 24pt; margin-bottom: 20px; text-align: center; }
@@ -66,25 +53,22 @@
       #area-impresion .text-xs { font-size: 10pt; }
       #area-impresion .text-sm { font-size: 12pt; }
       #area-impresion .font-mono { font-family: monospace; font-size: 11pt; }
-      
       #area-impresion .border-b { border-bottom: 2px solid #ccc; }
       #area-impresion .border-t-2 { border-top: 3px solid #000; }
-
+      
       .no-print { display: none !important; }
     }
-
     .animation-fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans select-none pb-safe">
-  
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white font-sans select-none pb-safe transition-colors duration-300">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // --- 1. ICONOS (Fuera para evitar re-render) ---
+    // --- ICONOS ---
     const Icon = ({ name, className }) => {
       const icons = {
         Plus: <path d="M5 12h14M12 5v14" />,
@@ -102,80 +86,81 @@
         FileText: <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />,
         Share2: <circle cx="18" cy="5" r="3" />,
         Printer: <path d="M6 9V2h12v7" />,
-        AlertTriangle: <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+        Moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+        Sun: <circle cx="12" cy="12" r="4" />,
+        Eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />,
+        Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
       };
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || <circle cx="12" cy="12" r="10" />}</svg>;
+      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
     };
 
-    // --- 2. COMPONENTE INSTALAR (Extraído para persistencia correcta) ---
+    // --- COMPONENTE AVISO INSTALAR ---
     const InstallPrompt = () => {
-      const [visible, setVisible] = useState(false); // Empieza oculto para no parpadear
+      const [visible, setVisible] = useState(false);
       const [isIOS, setIsIOS] = useState(false);
-
       useEffect(() => {
-        // 1. Verificar si el usuario ya lo cerró antes
-        const yaCerrado = localStorage.getItem('install_prompt_dismissed');
-        if (yaCerrado) return; // Si ya lo cerró, no hacemos nada más.
-
-        // 2. Verificar si es iOS
+        const dismissed = localStorage.getItem('install_prompt_dismissed');
+        if (dismissed) return;
         const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         setIsIOS(ios);
-
-        // 3. Verificar si ya está instalada (Standalone)
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        
-        // Solo mostrar si NO está instalada
-        if (!isStandalone) {
-          setVisible(true);
-        }
+        if (!isStandalone) setVisible(true);
       }, []);
-
-      const cerrarAviso = () => {
-        setVisible(false);
-        // Guardar en memoria que el usuario lo cerró
-        localStorage.setItem('install_prompt_dismissed', 'true');
-      };
-
+      const cerrar = () => { setVisible(false); localStorage.setItem('install_prompt_dismissed', 'true'); };
       if (!visible) return null;
-
       return (
-        <div className="fixed bottom-4 left-4 right-4 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-4 border border-slate-700 animation-fade-in no-print">
+        <div className="fixed bottom-4 left-4 right-4 bg-slate-800 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-4 border border-slate-700 animation-fade-in no-print">
           <div className="bg-blue-600 p-2 rounded-lg shrink-0"><Icon name="Zap" className="w-6 h-6 text-white" /></div>
           <div className="flex-1">
-            <h4 className="font-bold text-sm mb-1">Instalar Aplicación</h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {isIOS ? 
-                <span>Para mejor experiencia: Toca el botón <Icon name="Share2" className="inline w-3 h-3 mx-1" /> abajo y selecciona <strong className="text-white">"Agregar a Inicio"</strong>.</span> : 
-                <span>Para instalar: Toca el menú del navegador (⋮) arriba y selecciona <strong className="text-white">"Agregar a la pantalla principal"</strong> o "Instalar".</span>
-              }
-            </p>
+            <h4 className="font-bold text-sm mb-1">Instalar EquiVolt</h4>
+            <p className="text-xs text-slate-300">{isIOS ? <span>Toca <Icon name="Share2" className="inline w-3 h-3" /> y <strong>"Agregar a Inicio"</strong>.</span> : <span>Toca menú (⋮) y <strong>"Agregar a pantalla principal"</strong>.</span>}</p>
           </div>
-          <button onClick={cerrarAviso} className="text-slate-400 hover:text-white p-1"><Icon name="X" className="w-5 h-5" /></button>
+          <button onClick={cerrar}><Icon name="X" className="w-5 h-5 text-slate-400 hover:text-white" /></button>
         </div>
       );
     };
 
-    // --- 3. APLICACIÓN PRINCIPAL ---
+    // --- APP PRINCIPAL ---
     function CalculadoraLuz() {
       const [registros, setRegistros] = useState([]);
       const [vistaActual, setVistaActual] = useState('calculadora'); 
       const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
       const [verReciboCasa1, setVerReciboCasa1] = useState(false); 
+      const [darkMode, setDarkMode] = useState(false);
 
-      // Formulario
+      // Config inicial Dark Mode
+      useEffect(() => {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          setDarkMode(true);
+        }
+      }, []);
+
+      // Efecto Dark Mode Global
+      useEffect(() => {
+        if (darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, [darkMode]);
+
+      const toggleTheme = () => setDarkMode(!darkMode);
+
+      // Estilos Comunes Inputs para Dark/Light
+      // text-slate-900 dark:text-white = Texto negro en día, blanco en noche
+      // bg-white dark:bg-slate-800 = Fondo blanco en día, gris oscuro en noche
+      // border-slate-300 dark:border-slate-600 = Borde gris suave en día, gris claro en noche
+      const inputClass = "w-full p-2 rounded-lg border text-sm outline-none transition-colors bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400";
+      const labelClass = "text-xs font-bold mb-1 block text-slate-600 dark:text-slate-300";
+      const cardClass = "bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xl mb-6 animation-fade-in border border-slate-200 dark:border-slate-700 transition-colors";
+
+      // Formulario con método de cálculo
       const [form, setForm] = useState({
         id: null,
-        domicilio: '', 
-        etiquetaCasa1: 'Casa 1', 
-        fecha: new Date().toISOString().split('T')[0],
-        itemAdmin: 1029, 
-        itemElectricidad: '', 
-        itemTransporte: '',   
-        itemAjusteAnterior: '', 
-        itemAjusteActual: '',   
-        consumoTotal: '',
-        lecturaAnterior: '',
-        lecturaActual: '',
+        domicilio: '', etiquetaCasa1: 'Casa 1', fecha: new Date().toISOString().split('T')[0],
+        itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
+        consumoTotal: '', lecturaAnterior: '', lecturaActual: '',
+        metodoCalculo: 'hibrido' 
       });
       
       const [modoEdicion, setModoEdicion] = useState(false);
@@ -183,346 +168,350 @@
 
       useEffect(() => {
         try {
-          const datosGuardados = localStorage.getItem('historial_luz_chepe');
-          if (datosGuardados) setRegistros(JSON.parse(datosGuardados));
+          const datos = localStorage.getItem('historial_luz_chepe');
+          if (datos) setRegistros(JSON.parse(datos));
         } catch (e) {}
       }, []);
 
       useEffect(() => {
-        try {
-          localStorage.setItem('historial_luz_chepe', JSON.stringify(registros));
-        } catch (e) {}
+        try { localStorage.setItem('historial_luz_chepe', JSON.stringify(registros)); } catch (e) {}
       }, [registros]);
 
-      const formatoPeso = (valor) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(Math.round(valor));
+      const formatoPeso = (v) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(Math.round(v));
 
+      // LÓGICA DE CÁLCULO
       const calcularPago = (datos) => {
         const admin = parseFloat(datos.itemAdmin) || 0;
         const electricidad = parseFloat(datos.itemElectricidad) || 0;
         const transporte = parseFloat(datos.itemTransporte) || 0;
-        const ajusteAnterior = parseFloat(datos.itemAjusteAnterior) || 0;
-        const ajusteActual = parseFloat(datos.itemAjusteActual) || 0;
-        
-        const ajustesVariables = ajusteAnterior + ajusteActual;
-        const totalBoletaCalculado = admin + electricidad + transporte + ajustesVariables;
+        const ajusteAnt = parseFloat(datos.itemAjusteAnterior) || 0;
+        const ajusteAct = parseFloat(datos.itemAjusteActual) || 0;
+        const ajustesVars = ajusteAnt + ajusteAct;
+        const totalBoleta = admin + electricidad + transporte + ajustesVars;
 
-        const consumoTotal = parseFloat(datos.consumoTotal) || 1; 
+        const consTotal = parseFloat(datos.consumoTotal) || 1; 
         const lecAnt = parseFloat(datos.lecturaAnterior) || 0;
         const lecAct = parseFloat(datos.lecturaActual) || 0;
+        const consInq = lecAct - lecAnt;
+        const consCasa1 = consTotal - consInq;
 
-        const consumoInquilino = lecAct - lecAnt;
-        const consumoCasa1 = consumoTotal - consumoInquilino;
+        // Factores
+        const factorInq = consTotal > 0 ? (consInq / consTotal) : 0;
+        const factorCasa1 = consTotal > 0 ? (consCasa1 / consTotal) : 0;
 
-        const factorInquilino = consumoTotal > 0 ? (consumoInquilino / consumoTotal) : 0;
-        const factorCasa1 = consumoTotal > 0 ? (consumoCasa1 / consumoTotal) : 0;
+        const metodo = datos.metodoCalculo || 'hibrido'; 
+        let detInq, detCasa1;
 
-        const detInquilino = {
+        if (metodo === 'hibrido') {
+          detInq = {
             admin: admin / 2,
-            electricidad: electricidad * factorInquilino,
-            transporte: transporte * factorInquilino,
-            ajustes: ajustesVariables * factorInquilino
-        };
-        const totalInquilino = Math.round(detInquilino.admin + detInquilino.electricidad + detInquilino.transporte + detInquilino.ajustes);
-
-        const detCasa1 = {
+            electricidad: electricidad * factorInq,
+            transporte: transporte / 2, 
+            ajustes: ajustesVars / 2
+          };
+          detCasa1 = {
             admin: admin / 2,
             electricidad: electricidad * factorCasa1,
+            transporte: transporte / 2, 
+            ajustes: ajustesVars / 2
+          };
+        } else {
+          detInq = {
+            admin: admin * factorInq,
+            electricidad: electricidad * factorInq,
+            transporte: transporte * factorInq,
+            ajustes: ajustesVars * factorInq
+          };
+          detCasa1 = {
+            admin: admin * factorCasa1,
+            electricidad: electricidad * factorCasa1,
             transporte: transporte * factorCasa1,
-            ajustes: ajustesVariables * factorCasa1
-        };
-        const totalCasa1 = Math.round(totalBoletaCalculado - totalInquilino);
+            ajustes: ajustesVars * factorCasa1
+          };
+        }
+
+        const totalInq = Math.round(detInq.admin + detInq.electricidad + detInq.transporte + detInq.ajustes);
+        const totalCasa1 = Math.round(totalBoleta - totalInq); 
 
         return {
-          totalInquilino, consumoInquilino, detInquilino,
-          totalCasa1, consumoCasa1, detCasa1,
-          totalBoleta: Math.round(totalBoletaCalculado),
+          totalInquilino: totalInq, consumoInquilino: consInq, detInquilino: detInq,
+          totalCasa1, consumoCasa1: consCasa1, detCasa1,
+          totalBoleta: Math.round(totalBoleta),
+          metodoUsado: metodo
         };
       };
 
       const manejarCambio = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
       const prepararNuevoCalculo = () => {
-        let ultimaLectura = '';
-        let ultimoDomicilio = ''; 
-        let ultimaEtiquetaCasa1 = 'Casa 1';
-
+        let ultimaLectura = '', ultimoDom = '', ultimoEtiqueta = '';
         if (registros.length > 0) {
           const ordenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
           ultimaLectura = ordenados[0].lecturaActual;
-          ultimoDomicilio = ordenados[0].domicilio || '';
-          ultimaEtiquetaCasa1 = ordenados[0].etiquetaCasa1 || 'Casa 1';
+          ultimoDom = ordenados[0].domicilio || '';
+          ultimoEtiqueta = ordenados[0].etiquetaCasa1 || 'Casa 1';
         }
-
         setForm({
-          id: Date.now(),
-          domicilio: ultimoDomicilio,
-          etiquetaCasa1: ultimaEtiquetaCasa1,
-          fecha: new Date().toISOString().split('T')[0],
+          id: Date.now(), domicilio: ultimoDom, etiquetaCasa1: ultimoEtiqueta, fecha: new Date().toISOString().split('T')[0],
           itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
-          consumoTotal: '', lecturaAnterior: ultimaLectura, lecturaActual: '',
+          consumoTotal: '', lecturaAnterior: ultimaLectura, lecturaActual: '', metodoCalculo: 'hibrido'
         });
-        setModoEdicion(false);
-        setMostrarFormulario(true);
-        setVistaActual('calculadora');
+        setModoEdicion(false); setMostrarFormulario(true); setVistaActual('calculadora');
       };
 
       const guardarRegistro = (e) => {
         e.preventDefault();
         const resultado = calcularPago(form);
-        const registroCompleto = { ...form, ...resultado };
-        if (modoEdicion) {
-          setRegistros(registros.map(r => r.id === form.id ? registroCompleto : r));
-        } else {
-          setRegistros([registroCompleto, ...registros]);
-        }
+        const registro = { ...form, ...resultado };
+        setRegistros(modoEdicion ? registros.map(r => r.id === form.id ? registro : r) : [registro, ...registros]);
         setMostrarFormulario(false);
       };
 
-      const editarRegistro = (registro) => {
-        setForm({ ...registro, 
-          etiquetaCasa1: registro.etiquetaCasa1 || 'Casa 1',
-          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029,
-          itemElectricidad: registro.itemElectricidad || '',
-          itemTransporte: registro.itemTransporte || '',
-          itemAjusteAnterior: registro.itemAjusteAnterior || '',
-          itemAjusteActual: registro.itemAjusteActual || registro.itemOtros || '' 
-        });
-        setModoEdicion(true);
-        setMostrarFormulario(true);
-        setVistaActual('calculadora');
+      const editarRegistro = (reg) => {
+        setForm({ ...reg, metodoCalculo: reg.metodoCalculo || 'hibrido' });
+        setModoEdicion(true); setMostrarFormulario(true); setVistaActual('calculadora');
       };
 
-      const eliminarRegistro = (id) => {
-        if (confirm('¿Borrar registro?')) setRegistros(registros.filter(r => r.id !== id));
-      };
-
-      const abrirRecibo = (registro) => {
-        const registroNormalizado = { ...registro, 
-          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029,
-          itemElectricidad: registro.itemElectricidad || 0,
-          itemTransporte: registro.itemTransporte || 0,
-          itemAjusteAnterior: registro.itemAjusteAnterior || 0,
-          itemAjusteActual: registro.itemAjusteActual || registro.itemOtros || 0
-        };
-        const detalles = calcularPago(registroNormalizado);
-        setReciboSeleccionado({ ...registroNormalizado, ...detalles });
+      const abrirRecibo = (reg) => {
+        const resultado = calcularPago(reg); 
+        setReciboSeleccionado({ ...reg, ...resultado });
         setVerReciboCasa1(false);
       };
 
       const compartirWhatsapp = async () => {
         if (!reciboSeleccionado) return;
-        
         const esCasa1 = verReciboCasa1;
-        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Casa Principal') : (reciboSeleccionado.domicilio || 'Secundario');
-        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
+        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario');
         const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
-        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
-
-        const texto = `
-🧾 *RECIBO LUZ - ${nombre.toUpperCase()}*
-📅 Fecha: ${reciboSeleccionado.fecha}
-
-📊 *Consumo:*
-• Total Medidor: ${reciboSeleccionado.consumoTotal} kWh
-• Su Consumo: ${consumo} kWh
-
-💰 *Desglose a Pagar:*
-1. Admin (50%): ${formatoPeso(detalles.admin)}
-2. Electricidad: ${formatoPeso(detalles.electricidad)}
-3. Transporte: ${formatoPeso(detalles.transporte)}
-4. Ajustes: ${formatoPeso(detalles.ajustes)}
-
-💵 *TOTAL: ${formatoPeso(total)}*
---------------------------------
-(Calculado sobre boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)})`.trim();
-
-        if (navigator.share) {
-          try {
-            await navigator.share({ title: `Recibo Luz - ${nombre}`, text: texto });
-          } catch (err) {}
-        } else {
-          const textArea = document.createElement("textarea");
-          textArea.value = texto;
-          textArea.style.position = 'fixed';
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          try {
-            document.execCommand('copy');
-            alert(`Texto copiado. Pégalo en WhatsApp.`);
-          } catch (err) {
-            alert('No se pudo copiar automáticamente.');
-          }
-          document.body.removeChild(textArea);
-        }
+        const texto = `🧾 RECIBO EQUIVOLT - ${nombre.toUpperCase()}\nFecha: ${reciboSeleccionado.fecha}\n\nTotal a Pagar: ${formatoPeso(total)}\n(Detalle en PDF)`;
+        
+        if (navigator.share) { try { await navigator.share({ title: `Recibo ${nombre}`, text: texto }); } catch (e) {} }
+        else { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert("Copiado"); }
       };
 
-      const generarPDF = () => window.print();
       const resultadoEnVivo = calcularPago(form);
 
-      const VistaAyuda = () => (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 animation-fade-in h-full overflow-y-auto pb-20">
-          <div className="border-b border-slate-100 pb-4 mb-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" className="text-green-500 w-6 h-6" /> Cuentas Claras</h2>
-            <p className="text-slate-500 text-sm mt-1">Método transparente y auditable.</p>
-          </div>
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs mb-4">
-            <p className="font-bold text-slate-700 mb-2 border-b border-slate-200 pb-1">FÓRMULA LINEAL:</p>
-            <p className="text-base font-bold text-blue-700 mb-3">(Consumo × Precio) + (Fijo / 2)</p>
-            <ul className="space-y-2 text-slate-600 list-disc pl-4">
-                <li><strong>Consumo:</strong> Lectura actual menos anterior.</li>
-                <li><strong>Precio:</strong> Suma de (Elec. + Transp. + Ajustes) dividido por el total de kWh de la boleta.</li>
-                <li><strong>Fijo:</strong> Costo Administración dividido por 2.</li>
-            </ul>
-          </div>
-          <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
-            <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-3 text-sm"><Icon name="FileText" className="w-4 h-4"/> Verificación Manual</h3>
-            <ol className="list-decimal list-inside space-y-3 text-xs text-slate-700 font-medium">
-              <li className="pl-1"><span className="font-bold">Calcula tu %:</span> (Tu Consumo ÷ Total kWh Boleta).</li>
-              <li className="pl-1"><span className="font-bold">Calcula tu parte variable:</span> Suma (Electricidad + Transporte + Ajustes) y multiplícalo por tu %.</li>
-              <li className="pl-1"><span className="font-bold">Suma el fijo:</span> Al resultado anterior, súmale la mitad de la Administración.</li>
-            </ol>
-          </div>
-        </div>
-      );
-
+      // --- VISTAS ---
       return (
-        <div className="max-w-md mx-auto min-h-screen flex flex-col">
+        <div className="max-w-md mx-auto min-h-screen flex flex-col bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
+          
           {/* Header */}
-          <div className="bg-blue-600 text-white p-6 pb-0 rounded-b-2xl shadow-lg no-print flex-shrink-0 z-10 sticky top-0">
+          <div className="bg-blue-600 dark:bg-blue-900 text-white p-6 pb-0 rounded-b-3xl shadow-lg no-print z-10 sticky top-0 transition-colors">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6" /> Luz Compartida</h1>
-                <p className="text-blue-100 text-xs opacity-90">v3.4 - Atinale guatón</p>
+                <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6 text-yellow-300" /> EquiVolt</h1>
+                <p className="text-blue-200 text-xs">v4.1 - Prorrateo GDC</p>
               </div>
-              {vistaActual === 'calculadora' && !reciboSeleccionado && (
-                <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md"><Icon name="Plus" className="w-6 h-6" /></button>
-              )}
+              <div className="flex gap-2">
+                <button onClick={toggleTheme} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"><Icon name={darkMode ? "Sun" : "Moon"} className="w-5 h-5" /></button>
+                {vistaActual === 'calculadora' && !reciboSeleccionado && (
+                  <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md transition-colors"><Icon name="Plus" className="w-6 h-6" /></button>
+                )}
+              </div>
             </div>
-            <div className="flex gap-6 text-sm font-medium">
-              <button onClick={() => { setVistaActual('calculadora'); setReciboSeleccionado(null); }} className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${vistaActual === 'calculadora' ? 'border-white text-white' : 'border-transparent text-blue-200 hover:text-white'}`}><Icon name="Calculator" className="w-4 h-4" />Calculadora</button>
-              <button onClick={() => { setVistaActual('ayuda'); setReciboSeleccionado(null); }} className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${vistaActual === 'ayuda' ? 'border-white text-white' : 'border-transparent text-blue-200 hover:text-white'}`}><Icon name="HelpCircle" className="w-4 h-4" />Ayuda</button>
+            <div className="flex gap-6 text-sm font-medium pb-2">
+              <button onClick={() => {setVistaActual('calculadora'); setReciboSeleccionado(null);}} className={`pb-2 border-b-2 transition-colors flex gap-2 ${vistaActual === 'calculadora' ? 'border-white text-white' : 'border-transparent text-blue-300 hover:text-white'}`}><Icon name="Calculator" className="w-4 h-4" />Calculadora</button>
+              <button onClick={() => setVistaActual('ayuda')} className={`pb-2 border-b-2 transition-colors flex gap-2 ${vistaActual === 'ayuda' ? 'border-white text-white' : 'border-transparent text-blue-300 hover:text-white'}`}><Icon name="HelpCircle" className="w-4 h-4" />Ayuda</button>
             </div>
           </div>
 
-          <div className="flex-grow p-4 relative">
-            {vistaActual === 'ayuda' ? <VistaAyuda /> : (
+          <div className="flex-grow p-4">
+            {vistaActual === 'ayuda' ? (
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm space-y-6 animation-fade-in border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+                <h2 className="text-xl font-bold flex gap-2"><Icon name="CheckCircle2" className="text-green-500" /> ¿Cómo se realiza el cálculo?</h2>
+                
+                <div className="space-y-6 text-sm">
+                  
+                  {/* Tarjeta Método Híbrido */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <h3 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
+                      <span className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 w-5 h-5 flex items-center justify-center rounded-full text-xs">1</span> Método Híbrido (Recomendado)
+                    </h3>
+                    <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">Ideal cuando se comparten gastos fijos equitativamente y solo se paga el consumo real de energía.</p>
+                    
+                    <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-blue-100 dark:border-blue-900 font-mono text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
+                      <p><strong>1. Variable (Energía):</strong> Electricidad × (Tu Consumo ÷ Total kWh)</p>
+                      <p><strong>2. Fijo (El resto):</strong> (Admin + Transporte + Ajustes) ÷ 2</p>
+                      <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-1 font-bold text-blue-600 dark:text-blue-400">Total = Variable + Fijo</p>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Método Proporcional */}
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
+                    <h3 className="font-bold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
+                      <span className="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 w-5 h-5 flex items-center justify-center rounded-full text-xs">2</span> Método Proporcional
+                    </h3>
+                    <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">Ideal si se considera que quien consume más debe pagar más de todo.</p>
+                    
+                    <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-purple-100 dark:border-purple-900 font-mono text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
+                      <p><strong>1. Tu Porcentaje:</strong> Tu Consumo ÷ Total kWh</p>
+                      <p><strong>2. Cálculo Total:</strong> Total Boleta × Tu Porcentaje</p>
+                      <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-1 font-bold text-purple-600 dark:text-purple-400">Total = Todo proporcional</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            ) : (
               <>
-                {/* RECIBO / MODAL */}
+                {/* MODAL RECIBO */}
                 {reciboSeleccionado && (
-                  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto" onClick={e => e.stopPropagation()}>
+                  <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto border border-slate-200 dark:border-slate-800" onClick={e=>e.stopPropagation()}>
                       <div className="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl no-print">
-                        <h3 className="font-bold flex items-center gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
+                        <h3 className="font-bold flex gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
                         <button onClick={() => setReciboSeleccionado(null)} className="text-slate-400 hover:text-white"><Icon name="X" className="w-5 h-5"/></button>
                       </div>
-                      <div className="flex border-b border-slate-200 no-print">
-                          <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.etiquetaCasa1 || 'Principal'}</button>
-                          <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${!verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.domicilio || 'Secundario'}</button>
+                      <div className="flex border-b border-slate-200 dark:border-slate-800 no-print bg-white dark:bg-slate-900">
+                          <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>{reciboSeleccionado.etiquetaCasa1 || 'Principal'}</button>
+                          <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${!verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>{reciboSeleccionado.domicilio || 'Secundario'}</button>
                       </div>
                       
-                      {/* AREA IMPRESIÓN */}
-                      <div id="area-impresion" className="p-6 bg-white">
+                      {/* AREA IMPRESION: Fondo Blanco siempre para que se vea bien en papel */}
+                      <div id="area-impresion" className="p-6 bg-white text-black">
                         <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
-                          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Recibo de Luz</h2>
-                          <p className="text-xs text-slate-500 mt-1 uppercase">Fecha: {reciboSeleccionado.fecha}</p>
+                          <h2 className="text-xl font-black text-slate-900 uppercase">Recibo de Luz</h2>
+                          <p className="text-xs text-slate-500 mt-1">Fecha: {reciboSeleccionado.fecha}</p>
                         </div>
-                        <div className="text-center border-b border-slate-100 pb-4 mb-4">
-                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total a Pagar</p>
+                        <div className="text-center mb-6">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Total a Pagar</p>
                           <p className="text-4xl font-black text-slate-800 mt-1">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</p>
-                          <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-1 rounded-full mt-2 inline-block border border-blue-100">
+                          <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-1 rounded-full mt-2 inline-block">
                             {verReciboCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario')}
                           </span>
                         </div>
-                        <div className="space-y-3 text-sm">
-                          <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lecturas Medidor</p>
-                            <div className="flex justify-between border-b border-slate-100 pb-1"><span className="text-slate-600">Anterior:</span><span className="font-mono">{reciboSeleccionado.lecturaAnterior}</span></div>
-                            <div className="flex justify-between border-b border-slate-100 pb-1"><span className="text-slate-600">Actual:</span><span className="font-mono">{reciboSeleccionado.lecturaActual}</span></div>
-                            <div className="flex justify-between pt-1 font-bold"><span className="text-slate-800">Consumo Propio:</span><span className="font-mono text-blue-600">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
-                          </div>
-                          <div className="pt-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Desglose del Pago</p>
-                            <div className="space-y-1">
-                              <div className="flex justify-between"><span className="text-slate-600">Administración (50%):</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.admin : reciboSeleccionado.detInquilino?.admin)}</span></div>
-                              <div className="flex justify-between"><span className="text-slate-600">Electricidad:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.electricidad : reciboSeleccionado.detInquilino?.electricidad)}</span></div>
-                              <div className="flex justify-between"><span className="text-slate-600">Transporte:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.transporte : reciboSeleccionado.detInquilino?.transporte)}</span></div>
-                              <div className="flex justify-between"><span className="text-slate-600">Ajustes / Otros:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.ajustes : reciboSeleccionado.detInquilino?.ajustes)}</span></div>
+                        <div className="space-y-2 text-sm border-t pt-4">
+                          <div className="flex justify-between"><span className="text-slate-600">Método:</span><span className="font-bold uppercase text-xs">{reciboSeleccionado.metodoUsado}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-600">Consumo:</span><span className="font-mono">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
+                          <div className="my-2 border-b"></div>
+                          {/* Desglose Dinámico */}
+                          {Object.entries(verReciboCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino).map(([k, v]) => (
+                            <div key={k} className="flex justify-between text-slate-700">
+                              <span className="capitalize">{k}:</span><span className="font-mono">{formatoPeso(v)}</span>
                             </div>
-                            <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-slate-900 text-base"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
-                          </div>
-                        </div>
-                        <div className="text-[9px] text-slate-400 text-center pt-6 italic leading-tight">
-                          Calculado proporcionalmente sobre boleta original.<br/>
-                          Monto Total Boleta: {formatoPeso(reciboSeleccionado.totalBoleta)}
+                          ))}
+                          <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-lg"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
                         </div>
                       </div>
 
-                      {/* Acciones */}
-                      <div className="p-6 pt-0 space-y-3 no-print bg-white rounded-b-2xl">
-                        <button onClick={compartirWhatsapp} className="w-full bg-green-500 active:bg-green-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-100 transition-transform active:scale-95">
-                          <Icon name="Share2" className="w-5 h-5" /> Compartir Texto (WhatsApp)
-                        </button>
-                        <button onClick={generarPDF} className="w-full bg-slate-800 active:bg-slate-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-slate-200 transition-transform active:scale-95">
-                          <Icon name="Printer" className="w-5 h-5" /> Guardar / Compartir PDF
-                        </button>
+                      <div className="p-6 pt-0 space-y-3 no-print bg-white dark:bg-slate-900 rounded-b-2xl">
+                        <button onClick={compartirWhatsapp} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex justify-center gap-2 transition-colors"><Icon name="Share2" className="w-5 h-5" /> Compartir</button>
+                        <button onClick={() => window.print()} className="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2 transition-colors"><Icon name="Printer" className="w-5 h-5" /> Guardar PDF</button>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Formulario Principal */}
+                {/* FORMULARIO */}
                 {mostrarFormulario && !reciboSeleccionado && (
-                  <div className="bg-white p-6 rounded-b-2xl rounded-tr-none shadow-xl border border-slate-200 mb-6 animation-fade-in relative top-[-10px] no-print">
+                  <div className={cardClass}>
                     <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-bold text-slate-700">{modoEdicion ? 'Editar Cálculo' : 'Nuevo Cálculo'}</h2>
-                      <button onClick={() => setMostrarFormulario(false)} className="text-slate-400 hover:text-slate-600"><Icon name="X" className="w-6 h-6" /></button>
+                      <h2 className="text-lg font-bold text-slate-800 dark:text-white">{modoEdicion ? 'Editar' : 'Nuevo'}</h2>
+                      <button onClick={() => setMostrarFormulario(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><Icon name="X" className="w-6 h-6" /></button>
                     </div>
                     <form onSubmit={guardarRegistro} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div><label className="block text-xs font-medium text-slate-500 mb-1">Principal</label><input type="text" name="etiquetaCasa1" value={form.etiquetaCasa1} onChange={manejarCambio} placeholder="Ej: Casa 1" className="w-full p-2 bg-slate-50 border rounded-lg text-xs" /></div>
-                        <div><label className="block text-xs font-medium text-slate-500 mb-1">Secundario</label><input type="text" name="domicilio" value={form.domicilio} onChange={manejarCambio} placeholder="Ej: Casa Patio" className="w-full p-2 bg-slate-50 border rounded-lg text-xs" /></div>
+                        <div><label className={labelClass}>Principal</label><input type="text" name="etiquetaCasa1" value={form.etiquetaCasa1} onChange={manejarCambio} className={inputClass} /></div>
+                        <div><label className={labelClass}>Secundario</label><input type="text" name="domicilio" value={form.domicilio} onChange={manejarCambio} className={inputClass} /></div>
                       </div>
-                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Fecha</label><input type="date" name="fecha" value={form.fecha} onChange={manejarCambio} required className="w-full p-2 bg-slate-50 border rounded-lg" /></div>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1"><Icon name="FileText" className="w-3 h-3"/> Copia tu boleta</p>
-                          <div className="grid grid-cols-2 gap-3">
-                              <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Administración</label><input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} className="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm" placeholder="1029" /></div>
-                              <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Transporte</label><input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} className="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm" placeholder="3875" /></div>
-                              <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Electricidad</label><input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} className="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm" placeholder="53351" /></div>
-                              <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Ajuste Mes Ant.</label><input type="number" name="itemAjusteAnterior" value={form.itemAjusteAnterior} onChange={manejarCambio} className="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm" placeholder="26" /></div>
-                              <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Ajuste Mes Actual</label><input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} className="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm" placeholder="-81" /></div>
-                          </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs text-slate-500">Suma Total Boleta:</span><span className="text-sm font-bold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200">{formatoPeso(resultadoEnVivo.totalBoleta)}</span></div>
+                      
+                      {/* CONFIGURACIÓN DE CÁLCULO */}
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <label className="text-xs font-bold mb-2 block flex items-center gap-1 text-slate-700 dark:text-slate-300"><Icon name="Settings" className="w-3 h-3" /> Método de Cálculo</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" onClick={() => setForm({...form, metodoCalculo: 'hibrido'})} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'hibrido' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                            Híbrido (50%)
+                          </button>
+                          <button type="button" onClick={() => setForm({...form, metodoCalculo: 'proporcional'})} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'proporcional' ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                            Proporcional (%)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center italic">
+                          {form.metodoCalculo === 'hibrido' ? "Fijos divididos 50/50. Energía por consumo." : "Todo dividido según % de consumo."}
+                        </p>
                       </div>
-                      <div><label className="block text-xs font-bold text-blue-600 mb-1">Consumo Total Boleta (kWh)</label><input type="number" name="consumoTotal" value={form.consumoTotal} onChange={manejarCambio} placeholder="Ej: 238" required className="w-full p-2 border-2 border-blue-100 rounded-lg focus:border-blue-500 outline-none" /></div>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200"><p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Lecturas Remarcador</p><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs text-slate-500 mb-1">Anterior</label><input type="number" name="lecturaAnterior" value={form.lecturaAnterior} onChange={manejarCambio} placeholder="0" required className="w-full p-2 bg-white border rounded-lg" /></div><div><label className="block text-xs text-slate-500 mb-1">Actual</label><input type="number" name="lecturaActual" value={form.lecturaActual} onChange={manejarCambio} placeholder="0" required className="w-full p-2 bg-white border rounded-lg" /></div></div></div>
-                      <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg flex justify-center items-center gap-2"><Icon name="Save" className="w-5 h-5" />{modoEdicion ? 'Actualizar Registro' : 'Guardar Registro'}</button>
+
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                        <div className="col-span-2 text-xs font-bold uppercase text-slate-400 mb-1">Datos Boleta</div>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Administración [Ej: 1029]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Transporte [Ej: 3875]</label>
+                        <input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} placeholder="1029" className={inputClass} />
+                        <input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} placeholder="3875" className={inputClass} />
+                        
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Electricidad [Ej: 53351]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste Anterior [Ej: 26]</label>
+                        <input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} placeholder="53351" className={inputClass} />
+                        <input type="number" name="itemAjusteAnterior" value={form.itemAjusteAnterior} onChange={manejarCambio} placeholder="26" className={inputClass} />
+
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste Actual [Ej: -81]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400"> </label>
+                        <input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} placeholder="-81" className={inputClass} />
+                        
+                        <div className="col-span-2 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200 dark:border-slate-700"><span>Total Boleta:</span><span className="text-slate-800 dark:text-slate-200">{formatoPeso(resultadoEnVivo.totalBoleta)}</span></div>
+                      </div>
+
+                      <div><label className={labelClass}>Total kWh Boleta</label><input type="number" name="consumoTotal" value={form.consumoTotal} onChange={manejarCambio} required className={inputClass} /></div>
+                      
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                        <div className="col-span-2 text-xs font-bold uppercase text-slate-400">Lecturas Remarcador</div>
+                        <input type="number" name="lecturaAnterior" value={form.lecturaAnterior} onChange={manejarCambio} placeholder="Anterior" className={inputClass} />
+                        <input type="number" name="lecturaActual" value={form.lecturaActual} onChange={manejarCambio} placeholder="Actual" className={inputClass} />
+                      </div>
+
+                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg transition-colors"><Icon name="Save" className="w-5 h-5 inline mr-2" /> Guardar</button>
                     </form>
                   </div>
                 )}
 
-                {/* Lista Historial */}
-                <div className="space-y-3 pb-20 no-print">
-                  {registros.length === 0 && !mostrarFormulario ? (
-                    <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200 opacity-70"><Icon name="Calculator" className="w-12 h-12 mx-auto text-slate-300 mb-3" /><p className="text-slate-400 font-medium">Sin registros.</p><button onClick={prepararNuevoCalculo} className="text-blue-500 font-bold mt-2">Empezar ahora</button></div>
-                  ) : (
-                    registros.map((reg) => (
-                      <div key={reg.id} onClick={() => abrirRecibo(reg)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 active:scale-98 transition-transform cursor-pointer">
-                        <div className="flex justify-between items-start mb-3">
-                          <div><p className="text-xs font-bold text-slate-400 uppercase">{reg.fecha}</p><h4 className="font-bold text-slate-700">{reg.domicilio || 'Secundario'}</h4></div>
-                          <div className="flex gap-2">
-                            <button onClick={(e) => {e.stopPropagation(); editarRegistro(reg)}} className="p-2 text-blue-500 bg-blue-50 rounded-lg"><Icon name="Edit2" className="w-4 h-4" /></button>
-                            <button onClick={(e) => {e.stopPropagation(); eliminarRegistro(reg.id)}} className="p-2 text-red-400 bg-red-50 rounded-lg"><Icon name="Trash2" className="w-4 h-4" /></button>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
-                          <div><span className="text-[10px] font-bold text-slate-400 uppercase block">Paga Secundario</span><span className="text-xl font-black text-blue-600">{formatoPeso(reg.totalInquilino)}</span></div>
-                          <div className="text-right"><span className="text-[10px] font-bold text-slate-400 uppercase block">Consumo</span><span className="text-sm font-bold text-slate-600">{reg.consumoInquilino} kWh</span></div>
+                {/* HISTORIAL (TARJETA NUEVA) */}
+                <div className="space-y-4 pb-20 no-print">
+                  {registros.map((reg) => (
+                    <div key={reg.id} className="bg-white dark:bg-slate-800 p-0 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
+                      {/* Header */}
+                      <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-between items-center border-b border-slate-100 dark:border-slate-700">
+                        <span className="text-xs font-bold uppercase text-slate-400">{reg.fecha}</span>
+                        <div className="flex gap-2">
+                          <button onClick={()=>editarRegistro(reg)} className="text-blue-500 hover:text-blue-600 p-1 rounded"><Icon name="Edit2" className="w-4 h-4"/></button>
+                          <button onClick={()=>eliminarRegistro(reg.id)} className="text-red-400 hover:text-red-500 p-1 rounded"><Icon name="Trash2" className="w-4 h-4"/></button>
                         </div>
                       </div>
-                    ))
-                  )}
+                      
+                      {/* Cuerpo Vertical Centrado */}
+                      <div className="p-5 flex flex-col items-center text-center space-y-6">
+                        
+                        {/* 1. Principal */}
+                        <div className="w-full">
+                          <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">{reg.etiquetaCasa1 || 'Principal'}</p>
+                          <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{formatoPeso(reg.totalCasa1)}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoCasa1} kWh</p>
+                        </div>
+
+                        {/* 2. Secundario */}
+                        <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-700">
+                          <p className="text-[10px] font-bold uppercase text-blue-500 mb-1 tracking-wider">{reg.domicilio || 'Secundario'}</p>
+                          <p className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">{formatoPeso(reg.totalInquilino)}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoInquilino} kWh</p>
+                        </div>
+
+                      </div>
+
+                      {/* Footer Totales */}
+                      <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
+                        <span>Consumo Total: <strong>{reg.consumoTotal} kWh</strong></span>
+                        <span>Boleta: <strong>{formatoPeso(reg.totalBoleta)}</strong></span>
+                      </div>
+
+                      {/* Botón Acción */}
+                      <button onClick={()=>abrirRecibo(reg)} className="w-full bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs py-3 flex justify-center items-center gap-2 border-t border-slate-100 dark:border-slate-700 transition-colors uppercase tracking-wide">
+                        <Icon name="Eye" className="w-3 h-3" /> PINCHA PARA VER DETALLE
+                      </button>
+                    </div>
+                  ))}
+                  {registros.length === 0 && !mostrarFormulario && <div className="text-center py-10 text-slate-400">Sin registros. Pulsa + para comenzar.</div>}
+                  
+                  <div className="text-center pt-8 pb-4">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.1 - Prorrateo de consumo - Hecho por GDC</p>
+                  </div>
                 </div>
               </>
             )}
@@ -537,4 +526,3 @@
   </script>
 </body>
 </html>
-
