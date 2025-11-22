@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Calculadora Luz</title>
   
-  <!-- Estilos (Tailwind CSS) con configuración de Modo Oscuro -->
+  <!-- Estilos (Tailwind CSS) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -13,11 +13,7 @@
       theme: {
         extend: {
           colors: {
-            slate: { 
-              850: '#1e293b', 
-              900: '#0f172a',
-              950: '#020617' 
-            }
+            slate: { 850: '#1e293b', 900: '#0f172a', 950: '#020617' }
           }
         }
       }
@@ -146,15 +142,12 @@
 
       const toggleTheme = () => setDarkMode(!darkMode);
 
-      // Estilos Comunes Inputs para Dark/Light
-      // text-slate-900 dark:text-white = Texto negro en día, blanco en noche
-      // bg-white dark:bg-slate-800 = Fondo blanco en día, gris oscuro en noche
-      // border-slate-300 dark:border-slate-600 = Borde gris suave en día, gris claro en noche
+      // Estilos Comunes
       const inputClass = "w-full p-2 rounded-lg border text-sm outline-none transition-colors bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400";
       const labelClass = "text-xs font-bold mb-1 block text-slate-600 dark:text-slate-300";
       const cardClass = "bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xl mb-6 animation-fade-in border border-slate-200 dark:border-slate-700 transition-colors";
 
-      // Formulario con método de cálculo
+      // Formulario
       const [form, setForm] = useState({
         id: null,
         domicilio: '', etiquetaCasa1: 'Casa 1', fecha: new Date().toISOString().split('T')[0],
@@ -195,7 +188,6 @@
         const consInq = lecAct - lecAnt;
         const consCasa1 = consTotal - consInq;
 
-        // Factores
         const factorInq = consTotal > 0 ? (consInq / consTotal) : 0;
         const factorCasa1 = consTotal > 0 ? (consCasa1 / consTotal) : 0;
 
@@ -272,6 +264,10 @@
         setModoEdicion(true); setMostrarFormulario(true); setVistaActual('calculadora');
       };
 
+      const eliminarRegistro = (id) => {
+        if (confirm('¿Borrar registro?')) setRegistros(registros.filter(r => r.id !== id));
+      };
+
       const abrirRecibo = (reg) => {
         const resultado = calcularPago(reg); 
         setReciboSeleccionado({ ...reg, ...resultado });
@@ -280,13 +276,47 @@
 
       const compartirWhatsapp = async () => {
         if (!reciboSeleccionado) return;
+        
         const esCasa1 = verReciboCasa1;
         const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario');
         const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
-        const texto = `🧾 RECIBO EQUIVOLT - ${nombre.toUpperCase()}\nFecha: ${reciboSeleccionado.fecha}\n\nTotal a Pagar: ${formatoPeso(total)}\n(Detalle en PDF)`;
+        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
+        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
+        const metodoLabel = reciboSeleccionado.metodoUsado === 'proporcional' ? '(Prop.)' : '(50%)';
+
+        const texto = `
+🧾 *RECIBO EQUIVOLT - ${nombre.toUpperCase()}*
+📅 Fecha: ${reciboSeleccionado.fecha}
+
+📊 *Consumo:*
+• Total Medidor: ${reciboSeleccionado.consumoTotal} kWh
+• Su Consumo: ${consumo} kWh
+
+💰 *Desglose a Pagar:*
+1. Admin ${metodoLabel}: ${formatoPeso(detalles.admin)}
+2. Electricidad: ${formatoPeso(detalles.electricidad)}
+3. Transporte ${metodoLabel}: ${formatoPeso(detalles.transporte)}
+4. Ajustes ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
+
+💵 *TOTAL: ${formatoPeso(total)}*
+--------------------------------
+(Calculado sobre boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)})`.trim();
         
-        if (navigator.share) { try { await navigator.share({ title: `Recibo ${nombre}`, text: texto }); } catch (e) {} }
-        else { const ta = document.createElement("textarea"); ta.value = texto; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert("Copiado"); }
+        if (navigator.share) { 
+          try { await navigator.share({ title: `Recibo ${nombre}`, text: texto }); } catch (e) {} 
+        } else { 
+          const ta = document.createElement("textarea"); 
+          ta.value = texto; 
+          document.body.appendChild(ta); 
+          ta.select(); 
+          try {
+            document.execCommand('copy'); 
+            alert("Copiado al portapapeles."); 
+          } catch (e) {
+            alert("No se pudo copiar.");
+          }
+          document.body.removeChild(ta); 
+        }
       };
 
       const resultadoEnVivo = calcularPago(form);
@@ -300,7 +330,7 @@
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6 text-yellow-300" /> EquiVolt</h1>
-                <p className="text-blue-200 text-xs">v4.1 - Prorrateo GDC</p>
+                <p className="text-blue-200 text-xs">v4.2 - Prorrateo GDC</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={toggleTheme} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"><Icon name={darkMode ? "Sun" : "Moon"} className="w-5 h-5" /></button>
@@ -471,8 +501,8 @@
                       <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-between items-center border-b border-slate-100 dark:border-slate-700">
                         <span className="text-xs font-bold uppercase text-slate-400">{reg.fecha}</span>
                         <div className="flex gap-2">
-                          <button onClick={()=>editarRegistro(reg)} className="text-blue-500 hover:text-blue-600 p-1 rounded"><Icon name="Edit2" className="w-4 h-4"/></button>
-                          <button onClick={()=>eliminarRegistro(reg.id)} className="text-red-400 hover:text-red-500 p-1 rounded"><Icon name="Trash2" className="w-4 h-4"/></button>
+                          <button onClick={(e) => { e.stopPropagation(); editarRegistro(reg); }} className="text-blue-500 hover:text-blue-600 p-1 rounded"><Icon name="Edit2" className="w-4 h-4"/></button>
+                          <button onClick={(e) => { e.stopPropagation(); eliminarRegistro(reg.id); }} className="text-red-400 hover:text-red-500 p-1 rounded"><Icon name="Trash2" className="w-4 h-4"/></button>
                         </div>
                       </div>
                       
@@ -510,7 +540,7 @@
                   {registros.length === 0 && !mostrarFormulario && <div className="text-center py-10 text-slate-400">Sin registros. Pulsa + para comenzar.</div>}
                   
                   <div className="text-center pt-8 pb-4">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.1 - Prorrateo de consumo - Hecho por GDC</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.2 - Prorrateo de consumo - Hecho por GDC</p>
                   </div>
                 </div>
               </>
