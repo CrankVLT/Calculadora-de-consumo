@@ -20,57 +20,66 @@
     /* --- ESTILOS CRÍTICOS DE IMPRESIÓN (PDF) --- */
     @media print {
       @page {
-        margin: 0;
-        size: auto;
+        size: letter; /* Forzar tamaño carta */
+        margin: 2cm;  /* Margen estándar */
       }
       
+      body {
+        background: white;
+        -webkit-print-color-adjust: exact; /* Forzar impresión de colores de fondo */
+        print-color-adjust: exact;
+      }
+
+      /* Ocultar TODO por defecto */
       body * {
-        visibility: hidden; 
+        visibility: hidden;
       }
-      
-      /* Resetear contenedores para que no limiten el ancho */
+
+      /* Resetear contenedores que limitan el ancho */
       #root, .modal-overlay, .max-w-sm, .max-w-md {
         position: static !important;
         overflow: visible !important;
         height: auto !important;
         width: 100% !important;
-        max-width: none !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         transform: none !important;
         box-shadow: none !important;
-        border-radius: 0 !important;
+        border: none !important;
       }
 
-      /* Hacer visible SOLO el área de impresión */
+      /* Hacer visible SOLO el área de impresión y sus hijos */
       #area-impresion, #area-impresion * {
         visibility: visible;
       }
 
-      /* Estilo del recibo al imprimir: Ocupar toda la hoja */
+      /* Estilo del recibo al imprimir: EXPANDIR */
       #area-impresion {
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
-        min-height: 100vh;
         margin: 0;
-        padding: 40px; /* Margen interno para que no se pegue al borde del papel */
+        padding: 0;
         background: white;
         color: black;
-        font-size: 14pt; /* Letra un poco más grande para papel */
-        z-index: 9999;
+        font-family: sans-serif;
       }
       
-      /* Ajustes de texto para impresión */
-      #area-impresion h2 { font-size: 24pt; margin-bottom: 10px; }
-      #area-impresion .text-4xl { font-size: 36pt; }
+      /* Aumentar tamaños de letra para papel */
+      #area-impresion h2 { font-size: 24pt; margin-bottom: 20px; text-align: center; }
+      #area-impresion .text-4xl { font-size: 40pt; text-align: center; margin: 20px 0; }
       #area-impresion .text-xs { font-size: 10pt; }
       #area-impresion .text-sm { font-size: 12pt; }
+      #area-impresion .font-mono { font-family: monospace; font-size: 12pt; }
+      
+      /* Ajustes de espaciado para papel */
+      #area-impresion .py-1 { padding-top: 5px; padding-bottom: 5px; }
+      #area-impresion .mb-4 { margin-bottom: 20px; }
+      #area-impresion .border-b { border-bottom: 2px solid #ddd; }
 
-      .no-print {
-        display: none !important;
-      }
+      .no-print { display: none !important; }
     }
 
     /* Animaciones de UI */
@@ -120,28 +129,21 @@
         domicilio: '', 
         etiquetaCasa1: 'Casa 1', 
         fecha: new Date().toISOString().split('T')[0],
-        itemAdmin: 1029,      
-        itemElectricidad: '', 
-        itemTransporte: '',   
-        itemAjusteAnterior: '', 
-        itemAjusteActual: '',   
-        consumoTotal: '',
-        lecturaAnterior: '',
-        lecturaActual: '',
+        itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
+        consumoTotal: '', lecturaAnterior: '', lecturaActual: '',
       });
       
       const [modoEdicion, setModoEdicion] = useState(false);
       const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-      // Cargar datos
+      // Cargar/Guardar datos
       useEffect(() => {
         try {
           const datosGuardados = localStorage.getItem('historial_luz_chepe');
           if (datosGuardados) setRegistros(JSON.parse(datosGuardados));
-        } catch (e) { console.log("Error LS"); }
+        } catch (e) {}
       }, []);
 
-      // Guardar datos
       useEffect(() => {
         try {
           localStorage.setItem('historial_luz_chepe', JSON.stringify(registros));
@@ -236,7 +238,7 @@
       const editarRegistro = (registro) => {
         setForm({ ...registro, 
           etiquetaCasa1: registro.etiquetaCasa1 || 'Casa 1',
-          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029, 
+          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029,
           itemElectricidad: registro.itemElectricidad || '',
           itemTransporte: registro.itemTransporte || '',
           itemAjusteAnterior: registro.itemAjusteAnterior || '',
@@ -264,7 +266,7 @@
         setVerReciboCasa1(false);
       };
 
-      // COMPARTIR WHATSAPP NATIVO
+      // COMPARTIR TEXTO
       const compartirWhatsapp = async () => {
         if (!reciboSeleccionado) return;
         
@@ -294,11 +296,8 @@
 
         if (navigator.share) {
           try {
-            await navigator.share({
-              title: `Recibo Luz - ${nombre}`,
-              text: texto,
-            });
-          } catch (err) { console.log('Compartir cancelado'); }
+            await navigator.share({ title: `Recibo Luz - ${nombre}`, text: texto });
+          } catch (err) {}
         } else {
           const textArea = document.createElement("textarea");
           textArea.value = texto;
@@ -319,36 +318,63 @@
       const generarPDF = () => window.print();
       const resultadoEnVivo = calcularPago(form);
 
-      // Vistas
+      // --- COMPONENTES DE INTERFAZ ---
+
+      const InstallPrompt = () => {
+        const [visible, setVisible] = useState(true);
+        const [isIOS, setIsIOS] = useState(false);
+
+        useEffect(() => {
+          const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          setIsIOS(ios);
+          const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+          if (isStandalone) setVisible(false);
+        }, []);
+
+        if (!visible) return null;
+
+        return (
+          <div className="fixed bottom-4 left-4 right-4 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-4 border border-slate-700 animation-fade-in no-print">
+            <div className="bg-blue-600 p-2 rounded-lg shrink-0"><Icon name="Zap" className="w-6 h-6 text-white" /></div>
+            <div className="flex-1">
+              <h4 className="font-bold text-sm mb-1">Instalar Aplicación</h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {isIOS ? 
+                  <span>Para mejor experiencia: Toca el botón <Icon name="Share2" className="inline w-3 h-3 mx-1" /> abajo y selecciona <strong className="text-white">"Agregar a Inicio"</strong>.</span> : 
+                  <span>Para instalar: Toca el menú del navegador (⋮) arriba y selecciona <strong className="text-white">"Agregar a la pantalla principal"</strong> o "Instalar".</span>
+                }
+              </p>
+            </div>
+            <button onClick={() => setVisible(false)} className="text-slate-400 hover:text-white p-1"><Icon name="X" className="w-5 h-5" /></button>
+          </div>
+        );
+      };
+
       const VistaAyuda = () => (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 animation-fade-in h-full overflow-y-auto pb-20">
           <div className="border-b border-slate-100 pb-4 mb-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Icon name="CheckCircle2" className="text-green-500 w-6 h-6" />
-              Cuentas Claras
-            </h2>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icon name="CheckCircle2" className="text-green-500 w-6 h-6" /> Cuentas Claras</h2>
             <p className="text-slate-500 text-sm mt-1">Método transparente y auditable.</p>
           </div>
+          
+          {/* SECCIÓN FÓRMULA LINEAL - VISIBLE Y CLARA */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs mb-4">
+            <p className="font-bold text-slate-700 mb-2 border-b border-slate-200 pb-1">FÓRMULA LINEAL:</p>
+            <p className="text-base font-bold text-blue-700 mb-3">(Consumo × Precio) + (Fijo / 2)</p>
+            <ul className="space-y-2 text-slate-600 list-disc pl-4">
+                <li><strong>Consumo:</strong> Lectura actual menos anterior.</li>
+                <li><strong>Precio:</strong> Suma de (Elec. + Transp. + Ajustes) dividido por el total de kWh de la boleta.</li>
+                <li><strong>Fijo:</strong> Costo Administración dividido por 2.</li>
+            </ul>
+          </div>
 
-          <div className="space-y-6">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs">
-              <p className="font-bold text-slate-700 mb-2 border-b border-slate-200 pb-1">FÓRMULA LINEAL:</p>
-              <p className="text-base font-bold text-blue-700 mb-2">(Consumo × Precio) + (Fijo / 2)</p>
-              <ul className="space-y-2 text-slate-600 list-disc pl-4">
-                  <li><strong>Consumo:</strong> Tu lectura actual - anterior.</li>
-                  <li><strong>Precio:</strong> Suma de (Elec. + Transp. + Ajustes) dividido por total kWh boleta.</li>
-                  <li><strong>Fijo:</strong> Costo Administración dividido en 2.</li>
-              </ul>
-            </div>
-
-            <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
-              <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-3 text-sm"><Icon name="FileText" className="w-4 h-4"/> Verificación Manual</h3>
-              <ol className="list-decimal list-inside space-y-3 text-xs text-slate-700 font-medium">
-                <li className="pl-1"><span className="font-bold">Calcula tu %:</span> (Tu Consumo ÷ Total kWh Boleta).</li>
-                <li className="pl-1"><span className="font-bold">Calcula tu parte variable:</span> Suma (Electricidad + Transporte + Ajustes) y multiplícalo por tu %.</li>
-                <li className="pl-1"><span className="font-bold">Suma el fijo:</span> Al resultado anterior, súmale la mitad de la Administración.</li>
-              </ol>
-            </div>
+          <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
+            <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-3 text-sm"><Icon name="FileText" className="w-4 h-4"/> Verificación Manual</h3>
+            <ol className="list-decimal list-inside space-y-3 text-xs text-slate-700 font-medium">
+              <li className="pl-1"><span className="font-bold">Calcula tu %:</span> (Tu Consumo ÷ Total kWh Boleta).</li>
+              <li className="pl-1"><span className="font-bold">Calcula tu parte variable:</span> Suma (Electricidad + Transporte + Ajustes) y multiplícalo por tu %.</li>
+              <li className="pl-1"><span className="font-bold">Suma el fijo:</span> Al resultado anterior, súmale la mitad de la Administración.</li>
+            </ol>
           </div>
         </div>
       );
@@ -360,7 +386,7 @@
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6" /> Luz Compartida</h1>
-                <p className="text-blue-100 text-xs opacity-90">v2.2 - Edición PDF Full</p>
+                <p className="text-blue-100 text-xs opacity-90">v3.0 - Full PDF & Share</p>
               </div>
               {vistaActual === 'calculadora' && !reciboSeleccionado && (
                 <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md"><Icon name="Plus" className="w-6 h-6" /></button>
@@ -379,14 +405,10 @@
                 {reciboSeleccionado && (
                   <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto" onClick={e => e.stopPropagation()}>
-                      
-                      {/* Barra título modal */}
                       <div className="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl no-print">
                         <h3 className="font-bold flex items-center gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
                         <button onClick={() => setReciboSeleccionado(null)} className="text-slate-400 hover:text-white"><Icon name="X" className="w-5 h-5"/></button>
                       </div>
-
-                      {/* Tabs */}
                       <div className="flex border-b border-slate-200 no-print">
                           <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${!verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.domicilio || 'Arrendatario'}</button>
                           <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.etiquetaCasa1 || 'Casa 1'}</button>
@@ -398,7 +420,6 @@
                           <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Recibo de Luz</h2>
                           <p className="text-xs text-slate-500 mt-1 uppercase">Fecha: {reciboSeleccionado.fecha}</p>
                         </div>
-
                         <div className="text-center border-b border-slate-100 pb-4 mb-4">
                           <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total a Pagar</p>
                           <p className="text-4xl font-black text-slate-800 mt-1">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</p>
@@ -406,7 +427,6 @@
                             {verReciboCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Casa Principal') : (reciboSeleccionado.domicilio || 'Arrendatario')}
                           </span>
                         </div>
-
                         <div className="space-y-3 text-sm">
                           <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lecturas Medidor</p>
@@ -414,7 +434,6 @@
                             <div className="flex justify-between border-b border-slate-100 pb-1"><span className="text-slate-600">Actual:</span><span className="font-mono">{reciboSeleccionado.lecturaActual}</span></div>
                             <div className="flex justify-between pt-1 font-bold"><span className="text-slate-800">Consumo Propio:</span><span className="font-mono text-blue-600">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
                           </div>
-
                           <div className="pt-2">
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Desglose del Pago</p>
                             <div className="space-y-1">
@@ -426,7 +445,6 @@
                             <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-slate-900 text-base"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
                           </div>
                         </div>
-                        
                         <div className="text-[9px] text-slate-400 text-center pt-6 italic leading-tight">
                           Calculado proporcionalmente sobre boleta original.<br/>
                           Monto Total Boleta: {formatoPeso(reciboSeleccionado.totalBoleta)}
@@ -436,10 +454,10 @@
                       {/* Acciones */}
                       <div className="p-6 pt-0 space-y-3 no-print bg-white rounded-b-2xl">
                         <button onClick={compartirWhatsapp} className="w-full bg-green-500 active:bg-green-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-100 transition-transform active:scale-95">
-                          <Icon name="Share2" className="w-5 h-5" /> Compartir (WhatsApp)
+                          <Icon name="Share2" className="w-5 h-5" /> Compartir Texto (WhatsApp)
                         </button>
                         <button onClick={generarPDF} className="w-full bg-slate-800 active:bg-slate-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-slate-200 transition-transform active:scale-95">
-                          <Icon name="Printer" className="w-5 h-5" /> Guardar PDF
+                          <Icon name="Printer" className="w-5 h-5" /> Guardar / Compartir PDF
                         </button>
                       </div>
                     </div>
@@ -506,6 +524,7 @@
               </>
             )}
           </div>
+          <InstallPrompt />
         </div>
       );
     }
