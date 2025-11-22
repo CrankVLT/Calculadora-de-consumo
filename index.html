@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Calculadora Luz Compartida</title>
+  
+  <!-- Estilos (Tailwind CSS) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Motor React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Iconos -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* --- ESTILOS CRÍTICOS DE IMPRESIÓN (PDF) --- */
+    @media print {
+      @page {
+        margin: 0;
+        size: auto;
+      }
+      
+      body * {
+        visibility: hidden; 
+      }
+      
+      /* Resetear contenedores para que no limiten el ancho */
+      #root, .modal-overlay, .max-w-sm, .max-w-md {
+        position: static !important;
+        overflow: visible !important;
+        height: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        transform: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+
+      /* Hacer visible SOLO el área de impresión */
+      #area-impresion, #area-impresion * {
+        visibility: visible;
+      }
+
+      /* Estilo del recibo al imprimir: Ocupar toda la hoja */
+      #area-impresion {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 40px; /* Margen interno para que no se pegue al borde del papel */
+        background: white;
+        color: black;
+        font-size: 14pt; /* Letra un poco más grande para papel */
+        z-index: 9999;
+      }
+      
+      /* Ajustes de texto para impresión */
+      #area-impresion h2 { font-size: 24pt; margin-bottom: 10px; }
+      #area-impresion .text-4xl { font-size: 36pt; }
+      #area-impresion .text-xs { font-size: 10pt; }
+      #area-impresion .text-sm { font-size: 12pt; }
+
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Animaciones de UI */
+    .animation-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans select-none pb-safe">
+  
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Iconos SVG inline
+    const Icon = ({ name, className }) => {
+      const icons = {
+        Plus: <path d="M5 12h14M12 5v14" />,
+        Trash2: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></>,
+        Edit2: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
+        Save: <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />,
+        X: <path d="M18 6 6 18M6 6l12 12" />,
+        History: <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" />,
+        Calculator: <rect width="16" height="20" x="4" y="2" rx="2" />,
+        Zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
+        Home: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+        User: <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />,
+        HelpCircle: <circle cx="12" cy="12" r="10" />,
+        CheckCircle2: <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />,
+        FileText: <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />,
+        Share2: <circle cx="18" cy="5" r="3" />,
+        Printer: <path d="M6 9V2h12v7" />,
+        AlertTriangle: <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      };
+      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || <circle cx="12" cy="12" r="10" />}</svg>;
+    };
+
+    function CalculadoraLuz() {
+      const [registros, setRegistros] = useState([]);
+      const [vistaActual, setVistaActual] = useState('calculadora'); 
+      const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
+      const [verReciboCasa1, setVerReciboCasa1] = useState(false); 
+
+      // Formulario
+      const [form, setForm] = useState({
+        id: null,
+        domicilio: '', 
+        etiquetaCasa1: 'Casa 1', 
+        fecha: new Date().toISOString().split('T')[0],
+        itemAdmin: 1029,      
+        itemElectricidad: '', 
+        itemTransporte: '',   
+        itemAjusteAnterior: '', 
+        itemAjusteActual: '',   
+        consumoTotal: '',
+        lecturaAnterior: '',
+        lecturaActual: '',
+      });
+      
+      const [modoEdicion, setModoEdicion] = useState(false);
+      const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
+      // Cargar datos
+      useEffect(() => {
+        try {
+          const datosGuardados = localStorage.getItem('historial_luz_chepe');
+          if (datosGuardados) setRegistros(JSON.parse(datosGuardados));
+        } catch (e) { console.log("Error LS"); }
+      }, []);
+
+      // Guardar datos
+      useEffect(() => {
+        try {
+          localStorage.setItem('historial_luz_chepe', JSON.stringify(registros));
+        } catch (e) {}
+      }, [registros]);
+
+      const formatoPeso = (valor) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(Math.round(valor));
+
+      // Lógica de Cálculo
+      const calcularPago = (datos) => {
+        const admin = parseFloat(datos.itemAdmin) || 0;
+        const electricidad = parseFloat(datos.itemElectricidad) || 0;
+        const transporte = parseFloat(datos.itemTransporte) || 0;
+        const ajusteAnterior = parseFloat(datos.itemAjusteAnterior) || 0;
+        const ajusteActual = parseFloat(datos.itemAjusteActual) || 0;
+        
+        const ajustesVariables = ajusteAnterior + ajusteActual;
+        const totalBoletaCalculado = admin + electricidad + transporte + ajustesVariables;
+
+        const consumoTotal = parseFloat(datos.consumoTotal) || 1; 
+        const lecAnt = parseFloat(datos.lecturaAnterior) || 0;
+        const lecAct = parseFloat(datos.lecturaActual) || 0;
+
+        const consumoInquilino = lecAct - lecAnt;
+        const consumoCasa1 = consumoTotal - consumoInquilino;
+
+        const factorInquilino = consumoTotal > 0 ? (consumoInquilino / consumoTotal) : 0;
+        const factorCasa1 = consumoTotal > 0 ? (consumoCasa1 / consumoTotal) : 0;
+
+        const detInquilino = {
+            admin: admin / 2,
+            electricidad: electricidad * factorInquilino,
+            transporte: transporte * factorInquilino,
+            ajustes: ajustesVariables * factorInquilino
+        };
+        const totalInquilino = Math.round(detInquilino.admin + detInquilino.electricidad + detInquilino.transporte + detInquilino.ajustes);
+
+        const detCasa1 = {
+            admin: admin / 2,
+            electricidad: electricidad * factorCasa1,
+            transporte: transporte * factorCasa1,
+            ajustes: ajustesVariables * factorCasa1
+        };
+        const totalCasa1 = Math.round(totalBoletaCalculado - totalInquilino);
+
+        return {
+          totalInquilino, consumoInquilino, detInquilino,
+          totalCasa1, consumoCasa1, detCasa1,
+          totalBoleta: Math.round(totalBoletaCalculado),
+        };
+      };
+
+      const manejarCambio = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+      const prepararNuevoCalculo = () => {
+        let ultimaLectura = '';
+        let ultimoDomicilio = ''; 
+        let ultimaEtiquetaCasa1 = 'Casa 1';
+
+        if (registros.length > 0) {
+          const ordenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          ultimaLectura = ordenados[0].lecturaActual;
+          ultimoDomicilio = ordenados[0].domicilio || '';
+          ultimaEtiquetaCasa1 = ordenados[0].etiquetaCasa1 || 'Casa 1';
+        }
+
+        setForm({
+          id: Date.now(),
+          domicilio: ultimoDomicilio,
+          etiquetaCasa1: ultimaEtiquetaCasa1,
+          fecha: new Date().toISOString().split('T')[0],
+          itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
+          consumoTotal: '', lecturaAnterior: ultimaLectura, lecturaActual: '',
+        });
+        setModoEdicion(false);
+        setMostrarFormulario(true);
+        setVistaActual('calculadora');
+      };
+
+      const guardarRegistro = (e) => {
+        e.preventDefault();
+        const resultado = calcularPago(form);
+        const registroCompleto = { ...form, ...resultado };
+        if (modoEdicion) {
+          setRegistros(registros.map(r => r.id === form.id ? registroCompleto : r));
+        } else {
+          setRegistros([registroCompleto, ...registros]);
+        }
+        setMostrarFormulario(false);
+      };
+
+      const editarRegistro = (registro) => {
+        setForm({ ...registro, 
+          etiquetaCasa1: registro.etiquetaCasa1 || 'Casa 1',
+          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029, 
+          itemElectricidad: registro.itemElectricidad || '',
+          itemTransporte: registro.itemTransporte || '',
+          itemAjusteAnterior: registro.itemAjusteAnterior || '',
+          itemAjusteActual: registro.itemAjusteActual || registro.itemOtros || '' 
+        });
+        setModoEdicion(true);
+        setMostrarFormulario(true);
+        setVistaActual('calculadora');
+      };
+
+      const eliminarRegistro = (id) => {
+        if (confirm('¿Borrar registro?')) setRegistros(registros.filter(r => r.id !== id));
+      };
+
+      const abrirRecibo = (registro) => {
+        const registroNormalizado = { ...registro, 
+          itemAdmin: registro.itemAdmin || registro.adminTotal || 1029,
+          itemElectricidad: registro.itemElectricidad || 0,
+          itemTransporte: registro.itemTransporte || 0,
+          itemAjusteAnterior: registro.itemAjusteAnterior || 0,
+          itemAjusteActual: registro.itemAjusteActual || registro.itemOtros || 0
+        };
+        const detalles = calcularPago(registroNormalizado);
+        setReciboSeleccionado({ ...registroNormalizado, ...detalles });
+        setVerReciboCasa1(false);
+      };
+
+      // COMPARTIR WHATSAPP NATIVO
+      const compartirWhatsapp = async () => {
+        if (!reciboSeleccionado) return;
+        
+        const esCasa1 = verReciboCasa1;
+        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Casa Principal') : (reciboSeleccionado.domicilio || 'Arrendatario');
+        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
+        const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
+        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
+
+        const texto = `
+🧾 *RECIBO LUZ - ${nombre.toUpperCase()}*
+📅 Fecha: ${reciboSeleccionado.fecha}
+
+📊 *Consumo:*
+• Total Medidor: ${reciboSeleccionado.consumoTotal} kWh
+• Su Consumo: ${consumo} kWh
+
+💰 *Desglose a Pagar:*
+1. Admin (50%): ${formatoPeso(detalles.admin)}
+2. Electricidad: ${formatoPeso(detalles.electricidad)}
+3. Transporte: ${formatoPeso(detalles.transporte)}
+4. Ajustes: ${formatoPeso(detalles.ajustes)}
+
+💵 *TOTAL: ${formatoPeso(total)}*
+--------------------------------
+(Calculado sobre boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)})`.trim();
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `Recibo Luz - ${nombre}`,
+              text: texto,
+            });
+          } catch (err) { console.log('Compartir cancelado'); }
+        } else {
+          const textArea = document.createElement("textarea");
+          textArea.value = texto;
+          textArea.style.position = 'fixed';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            alert(`Texto copiado. Pégalo en WhatsApp.`);
+          } catch (err) {
+            alert('No se pudo copiar automáticamente.');
+          }
+          document.body.removeChild(textArea);
+        }
+      };
+
+      const generarPDF = () => window.print();
+      const resultadoEnVivo = calcularPago(form);
+
+      // Vistas
+      const VistaAyuda = () => (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 animation-fade-in h-full overflow-y-auto pb-20">
+          <div className="border-b border-slate-100 pb-4 mb-4">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Icon name="CheckCircle2" className="text-green-500 w-6 h-6" />
+              Cuentas Claras
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">Método transparente y auditable.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs">
+              <p className="font-bold text-slate-700 mb-2 border-b border-slate-200 pb-1">FÓRMULA LINEAL:</p>
+              <p className="text-base font-bold text-blue-700 mb-2">(Consumo × Precio) + (Fijo / 2)</p>
+              <ul className="space-y-2 text-slate-600 list-disc pl-4">
+                  <li><strong>Consumo:</strong> Tu lectura actual - anterior.</li>
+                  <li><strong>Precio:</strong> Suma de (Elec. + Transp. + Ajustes) dividido por total kWh boleta.</li>
+                  <li><strong>Fijo:</strong> Costo Administración dividido en 2.</li>
+              </ul>
+            </div>
+
+            <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
+              <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-3 text-sm"><Icon name="FileText" className="w-4 h-4"/> Verificación Manual</h3>
+              <ol className="list-decimal list-inside space-y-3 text-xs text-slate-700 font-medium">
+                <li className="pl-1"><span className="font-bold">Calcula tu %:</span> (Tu Consumo ÷ Total kWh Boleta).</li>
+                <li className="pl-1"><span className="font-bold">Calcula tu parte variable:</span> Suma (Electricidad + Transporte + Ajustes) y multiplícalo por tu %.</li>
+                <li className="pl-1"><span className="font-bold">Suma el fijo:</span> Al resultado anterior, súmale la mitad de la Administración.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="max-w-md mx-auto min-h-screen flex flex-col">
+          {/* Header */}
+          <div className="bg-blue-600 text-white p-6 pb-0 rounded-b-2xl shadow-lg no-print flex-shrink-0 z-10 sticky top-0">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6" /> Luz Compartida</h1>
+                <p className="text-blue-100 text-xs opacity-90">v2.2 - Edición PDF Full</p>
+              </div>
+              {vistaActual === 'calculadora' && !reciboSeleccionado && (
+                <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md"><Icon name="Plus" className="w-6 h-6" /></button>
+              )}
+            </div>
+            <div className="flex gap-6 text-sm font-medium">
+              <button onClick={() => { setVistaActual('calculadora'); setReciboSeleccionado(null); }} className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${vistaActual === 'calculadora' ? 'border-white text-white' : 'border-transparent text-blue-200 hover:text-white'}`}><Icon name="Calculator" className="w-4 h-4" />Calculadora</button>
+              <button onClick={() => { setVistaActual('ayuda'); setReciboSeleccionado(null); }} className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${vistaActual === 'ayuda' ? 'border-white text-white' : 'border-transparent text-blue-200 hover:text-white'}`}><Icon name="HelpCircle" className="w-4 h-4" />Ayuda</button>
+            </div>
+          </div>
+
+          <div className="flex-grow p-4 relative">
+            {vistaActual === 'ayuda' ? <VistaAyuda /> : (
+              <>
+                {/* RECIBO / MODAL */}
+                {reciboSeleccionado && (
+                  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto" onClick={e => e.stopPropagation()}>
+                      
+                      {/* Barra título modal */}
+                      <div className="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl no-print">
+                        <h3 className="font-bold flex items-center gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
+                        <button onClick={() => setReciboSeleccionado(null)} className="text-slate-400 hover:text-white"><Icon name="X" className="w-5 h-5"/></button>
+                      </div>
+
+                      {/* Tabs */}
+                      <div className="flex border-b border-slate-200 no-print">
+                          <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${!verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.domicilio || 'Arrendatario'}</button>
+                          <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-400'}`}>{reciboSeleccionado.etiquetaCasa1 || 'Casa 1'}</button>
+                      </div>
+                      
+                      {/* AREA IMPRESIÓN */}
+                      <div id="area-impresion" className="p-6 bg-white">
+                        <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
+                          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Recibo de Luz</h2>
+                          <p className="text-xs text-slate-500 mt-1 uppercase">Fecha: {reciboSeleccionado.fecha}</p>
+                        </div>
+
+                        <div className="text-center border-b border-slate-100 pb-4 mb-4">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total a Pagar</p>
+                          <p className="text-4xl font-black text-slate-800 mt-1">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</p>
+                          <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-1 rounded-full mt-2 inline-block border border-blue-100">
+                            {verReciboCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Casa Principal') : (reciboSeleccionado.domicilio || 'Arrendatario')}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lecturas Medidor</p>
+                            <div className="flex justify-between border-b border-slate-100 pb-1"><span className="text-slate-600">Anterior:</span><span className="font-mono">{reciboSeleccionado.lecturaAnterior}</span></div>
+                            <div className="flex justify-between border-b border-slate-100 pb-1"><span className="text-slate-600">Actual:</span><span className="font-mono">{reciboSeleccionado.lecturaActual}</span></div>
+                            <div className="flex justify-between pt-1 font-bold"><span className="text-slate-800">Consumo Propio:</span><span className="font-mono text-blue-600">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
+                          </div>
+
+                          <div className="pt-2">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Desglose del Pago</p>
+                            <div className="space-y-1">
+                              <div className="flex justify-between"><span className="text-slate-600">Administración (50%):</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.admin : reciboSeleccionado.detInquilino?.admin)}</span></div>
+                              <div className="flex justify-between"><span className="text-slate-600">Electricidad:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.electricidad : reciboSeleccionado.detInquilino?.electricidad)}</span></div>
+                              <div className="flex justify-between"><span className="text-slate-600">Transporte:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.transporte : reciboSeleccionado.detInquilino?.transporte)}</span></div>
+                              <div className="flex justify-between"><span className="text-slate-600">Ajustes / Otros:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1?.ajustes : reciboSeleccionado.detInquilino?.ajustes)}</span></div>
+                            </div>
+                            <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-slate-900 text-base"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
+                          </div>
+                        </div>
+                        
+                        <div className="text-[9px] text-slate-400 text-center pt-6 italic leading-tight">
+                          Calculado proporcionalmente sobre boleta original.<br/>
+                          Monto Total Boleta: {formatoPeso(reciboSeleccionado.totalBoleta)}
+                        </div>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="p-6 pt-0 space-y-3 no-print bg-white rounded-b-2xl">
+                        <button onClick={compartirWhatsapp} className="w-full bg-green-500 active:bg-green-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-100 transition-transform active:scale-95">
+                          <Icon name="Share2" className="w-5 h-5" /> Compartir (WhatsApp)
+                        </button>
+                        <button onClick={generarPDF} className="w-full bg-slate-800 active:bg-slate-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-slate-200 transition-transform active:scale-95">
+                          <Icon name="Printer" className="w-5 h-5" /> Guardar PDF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Formulario Principal */}
+                {mostrarFormulario && !reciboSeleccionado && (
+                  <div className="bg-white p-5 rounded-2xl shadow-xl border border-slate-200 mb-6 animation-fade-in no-print">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-bold text-slate-700">{modoEdicion ? 'Editar Mes' : 'Nuevo Cálculo'}</h2>
+                      <button onClick={() => setMostrarFormulario(false)} className="text-slate-400 hover:text-slate-600"><Icon name="X" className="w-6 h-6" /></button>
+                    </div>
+                    <form onSubmit={guardarRegistro} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Arrendatario</label><input type="text" name="domicilio" value={form.domicilio} onChange={manejarCambio} placeholder="Ej: Casa Patio" className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Principal</label><input type="text" name="etiquetaCasa1" value={form.etiquetaCasa1} onChange={manejarCambio} placeholder="Ej: Casa 1" className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                      </div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1">Fecha Boleta</label><input type="date" name="fecha" value={form.fecha} onChange={manejarCambio} required className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div>
+                      
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><Icon name="FileText" className="w-3 h-3"/> Ítems de la Boleta ($)</p>
+                          <div className="grid grid-cols-2 gap-2">
+                              <div><label className="text-[10px] text-slate-500">Administración</label><input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} className="w-full p-2 bg-white border rounded-lg text-sm" placeholder="1029" /></div>
+                              <div><label className="text-[10px] text-slate-500">Transporte</label><input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} className="w-full p-2 bg-white border rounded-lg text-sm" placeholder="3875" /></div>
+                              <div><label className="text-[10px] text-slate-500">Electricidad</label><input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} className="w-full p-2 bg-white border rounded-lg text-sm" placeholder="53351" /></div>
+                              <div><label className="text-[10px] text-slate-500">Ajustes</label><input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} className="w-full p-2 bg-white border rounded-lg text-sm" placeholder="-81" /></div>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs font-bold text-slate-500">Total Boleta:</span><span className="text-sm font-bold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200">{formatoPeso(resultadoEnVivo.totalBoleta)}</span></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-[10px] font-bold text-blue-600 mb-1">Total kWh Boleta</label><input type="number" name="consumoTotal" value={form.consumoTotal} onChange={manejarCambio} placeholder="238" required className="w-full p-2 border-2 border-blue-100 rounded-lg text-sm font-bold text-blue-800 outline-none" /></div>
+                        <div className="col-span-2"><p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lecturas Remarcador</p><div className="grid grid-cols-2 gap-2"><div><input type="number" name="lecturaAnterior" value={form.lecturaAnterior} onChange={manejarCambio} placeholder="Ant." className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div><div><input type="number" name="lecturaActual" value={form.lecturaActual} onChange={manejarCambio} placeholder="Act." className="w-full p-2 bg-slate-50 border rounded-lg text-sm" /></div></div></div>
+                      </div>
+
+                      <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg flex justify-center items-center gap-2"><Icon name="Save" className="w-5 h-5" /> Guardar Cálculo</button>
+                    </form>
+                  </div>
+                )}
+
+                {/* Lista Historial */}
+                <div className="space-y-3 pb-20 no-print">
+                  {registros.length === 0 && !mostrarFormulario ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200 opacity-70"><Icon name="Calculator" className="w-12 h-12 mx-auto text-slate-300 mb-3" /><p className="text-slate-400 font-medium">Sin registros.</p><button onClick={prepararNuevoCalculo} className="text-blue-500 font-bold mt-2">Empezar ahora</button></div>
+                  ) : (
+                    registros.map((reg) => (
+                      <div key={reg.id} onClick={() => abrirRecibo(reg)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 active:scale-98 transition-transform cursor-pointer">
+                        <div className="flex justify-between items-start mb-3">
+                          <div><p className="text-xs font-bold text-slate-400 uppercase">{reg.fecha}</p><h4 className="font-bold text-slate-700">{reg.domicilio || 'Arrendatario'}</h4></div>
+                          <div className="flex gap-2">
+                            <button onClick={(e) => {e.stopPropagation(); editarRegistro(reg)}} className="p-2 text-blue-500 bg-blue-50 rounded-lg"><Icon name="Edit2" className="w-4 h-4" /></button>
+                            <button onClick={(e) => {e.stopPropagation(); eliminarRegistro(reg.id)}} className="p-2 text-red-400 bg-red-50 rounded-lg"><Icon name="Trash2" className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                          <div><span className="text-[10px] font-bold text-slate-400 uppercase block">Paga Inquilino</span><span className="text-xl font-black text-blue-600">{formatoPeso(reg.totalInquilino)}</span></div>
+                          <div className="text-right"><span className="text-[10px] font-bold text-slate-400 uppercase block">Consumo</span><span className="text-sm font-bold text-slate-600">{reg.consumoInquilino} kWh</span></div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CalculadoraLuz />);
+  </script>
+</body>
+</html>
