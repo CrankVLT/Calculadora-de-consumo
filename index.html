@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Calculadora Luz</title>
   
-  <!-- Estilos (Tailwind CSS) -->
+  <!-- Estilos (Tailwind CSS) con configuración de Modo Oscuro -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -58,7 +58,7 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-white font-sans select-none pb-safe transition-colors duration-300">
+<body class="bg-slate-100 text-slate-800 font-sans select-none pb-safe transition-colors duration-300">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -85,9 +85,11 @@
         Moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
         Sun: <circle cx="12" cy="12" r="4" />,
         Eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />,
-        Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+        Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />,
+        // Corrección aquí: Envuelto en fragmento <></>
+        Mail: <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>
       };
-      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
+      return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || <circle cx="12" cy="12" r="10" />}</svg>;
     };
 
     // --- COMPONENTE AVISO INSTALAR ---
@@ -123,12 +125,16 @@
       const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
       const [verReciboCasa1, setVerReciboCasa1] = useState(false); 
       const [darkMode, setDarkMode] = useState(false);
+      const [emailDestino, setEmailDestino] = useState(''); // Estado para el email
 
-      // Config inicial Dark Mode
+      // Config inicial Dark Mode y Email
       useEffect(() => {
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
           setDarkMode(true);
         }
+        // Cargar email guardado si existe
+        const savedEmail = localStorage.getItem('email_destino_chepe');
+        if (savedEmail) setEmailDestino(savedEmail);
       }, []);
 
       // Efecto Dark Mode Global
@@ -293,10 +299,10 @@
 • Su Consumo: ${consumo} kWh
 
 💰 *Desglose a Pagar:*
-1. Admin ${metodoLabel}: ${formatoPeso(detalles.admin)}
-2. Electricidad: ${formatoPeso(detalles.electricidad)}
-3. Transporte ${metodoLabel}: ${formatoPeso(detalles.transporte)}
-4. Ajustes ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
+1. Administración del servicio ${metodoLabel}: ${formatoPeso(detalles.admin)}
+2. Electricidad consumida: ${formatoPeso(detalles.electricidad)}
+3. Transporte de Electricidad ${metodoLabel}: ${formatoPeso(detalles.transporte)}
+4. Ajustes (Mes Ant/Act) ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
 
 💵 *TOTAL: ${formatoPeso(total)}*
 --------------------------------
@@ -319,6 +325,66 @@
         }
       };
 
+      // NUEVA FUNCIÓN: ENVIAR POR CORREO
+      const enviarCorreo = () => {
+        if (!reciboSeleccionado) return;
+        
+        let email = emailDestino;
+        if (!email) {
+          email = prompt("Ingresa el correo del destinatario:");
+          if (email) {
+            setEmailDestino(email);
+            localStorage.setItem('email_destino_chepe', email);
+          } else {
+            return; // Cancelado
+          }
+        } else {
+            // Confirmar si quiere usar el mismo o cambiar
+            // Opcional: Podríamos hacer un input en el modal, pero por simpleza usamos prompt si quiere cambiar
+        }
+
+        const esCasa1 = verReciboCasa1;
+        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario');
+        const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
+        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
+        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
+        const metodoLabel = reciboSeleccionado.metodoUsado === 'proporcional' ? '(Proporcional)' : '(50%)';
+
+        const asunto = `Recibo de Luz - ${nombre} - ${reciboSeleccionado.fecha}`;
+        const cuerpo = `
+Hola,
+
+Aquí tienes el detalle del cobro de luz correspondiente a la fecha ${reciboSeleccionado.fecha}.
+
+--- RESUMEN ---
+Propiedad: ${nombre}
+Consumo Registrado: ${consumo} kWh
+Total a Pagar: ${formatoPeso(total)}
+
+--- DESGLOSE DETALLADO ---
+1. Administración del servicio ${metodoLabel}: ${formatoPeso(detalles.admin)}
+2. Electricidad consumida: ${formatoPeso(detalles.electricidad)}
+3. Transporte de Electricidad ${metodoLabel}: ${formatoPeso(detalles.transporte)}
+4. Ajustes (Mes Ant/Act) ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
+
+* Calculado sobre un total de boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)} y un consumo total de ${reciboSeleccionado.consumoTotal} kWh.
+
+Saludos.
+        `.trim();
+
+        // Crear enlace mailto
+        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+        window.location.href = mailtoLink;
+      };
+
+      const cambiarEmail = () => {
+          const nuevoEmail = prompt("Ingresa el nuevo correo por defecto:", emailDestino);
+          if (nuevoEmail !== null) {
+              setEmailDestino(nuevoEmail);
+              localStorage.setItem('email_destino_chepe', nuevoEmail);
+          }
+      };
+
       const resultadoEnVivo = calcularPago(form);
 
       // --- VISTAS ---
@@ -330,7 +396,7 @@
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6 text-yellow-300" /> EquiVolt</h1>
-                <p className="text-blue-200 text-xs">v4.2 - Prorrateo GDC</p>
+                <p className="text-blue-200 text-xs">v4.3 - Prorrateo GDC</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={toggleTheme} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"><Icon name={darkMode ? "Sun" : "Moon"} className="w-5 h-5" /></button>
@@ -360,7 +426,7 @@
                     <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">Ideal cuando se comparten gastos fijos equitativamente y solo se paga el consumo real de energía.</p>
                     
                     <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-blue-100 dark:border-blue-900 font-mono text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
-                      <p><strong>1. Variable (Energía):</strong> Electricidad × (Tu Consumo ÷ Total kWh)</p>
+                      <p><strong>1. Variable (Energía):</strong> Electricidad consumida × (Tu Consumo ÷ Total kWh)</p>
                       <p><strong>2. Fijo (El resto):</strong> (Admin + Transporte + Ajustes) ÷ 2</p>
                       <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-1 font-bold text-blue-600 dark:text-blue-400">Total = Variable + Fijo</p>
                     </div>
@@ -414,19 +480,30 @@
                           <div className="flex justify-between"><span className="text-slate-600">Método:</span><span className="font-bold uppercase text-xs">{reciboSeleccionado.metodoUsado}</span></div>
                           <div className="flex justify-between"><span className="text-slate-600">Consumo:</span><span className="font-mono">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
                           <div className="my-2 border-b"></div>
-                          {/* Desglose Dinámico */}
-                          {Object.entries(verReciboCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino).map(([k, v]) => (
-                            <div key={k} className="flex justify-between text-slate-700">
-                              <span className="capitalize">{k}:</span><span className="font-mono">{formatoPeso(v)}</span>
-                            </div>
-                          ))}
+                          
+                          {/* Desglose con NOMBRES ACTUALIZADOS */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-slate-700"><span className="capitalize">Admin. del servicio:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.admin : reciboSeleccionado.detInquilino.admin)}</span></div>
+                            <div className="flex justify-between text-slate-700"><span className="capitalize">Electricidad consumida:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.electricidad : reciboSeleccionado.detInquilino.electricidad)}</span></div>
+                            <div className="flex justify-between text-slate-700"><span className="capitalize">Transporte de Electricidad:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.transporte : reciboSeleccionado.detInquilino.transporte)}</span></div>
+                            <div className="flex justify-between text-slate-700"><span className="capitalize">Ajustes (Mes Ant/Act):</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.ajustes : reciboSeleccionado.detInquilino.ajustes)}</span></div>
+                          </div>
+
                           <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-lg"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
                         </div>
                       </div>
 
-                      <div className="p-6 pt-0 space-y-3 no-print bg-white dark:bg-slate-900 rounded-b-2xl">
-                        <button onClick={compartirWhatsapp} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl flex justify-center gap-2 transition-colors"><Icon name="Share2" className="w-5 h-5" /> Compartir</button>
-                        <button onClick={() => window.print()} className="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2 transition-colors"><Icon name="Printer" className="w-5 h-5" /> Guardar PDF</button>
+                      <div className="p-4 pt-0 space-y-2 no-print bg-white dark:bg-slate-900 rounded-b-2xl">
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={compartirWhatsapp} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Share2" className="w-4 h-4" /> WhatsApp</button>
+                            <button onClick={enviarCorreo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Mail" className="w-4 h-4" /> Correo</button>
+                        </div>
+                        <button onClick={() => window.print()} className="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Printer" className="w-4 h-4" /> Guardar PDF</button>
+                        
+                        {/* Link para cambiar correo si ya existe */}
+                        {emailDestino && (
+                            <p onClick={cambiarEmail} className="text-[10px] text-center text-slate-400 cursor-pointer hover:text-blue-500 underline mt-1">Cambiar correo guardado ({emailDestino})</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -461,19 +538,21 @@
                         </p>
                       </div>
 
+                      {/* CAMPOS DE BOLETA ACTUALIZADOS */}
                       <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
                         <div className="col-span-2 text-xs font-bold uppercase text-slate-400 mb-1">Datos Boleta</div>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Administración [Ej: 1029]</label>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Transporte [Ej: 3875]</label>
+                        
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Administración del servicio [Ej: 1029]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Transporte de Electricidad [Ej: 3875]</label>
                         <input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} placeholder="1029" className={inputClass} />
                         <input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} placeholder="3875" className={inputClass} />
                         
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Electricidad [Ej: 53351]</label>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste Anterior [Ej: 26]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Electricidad consumida [Ej: 53351]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes anterior [Ej: 26]</label>
                         <input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} placeholder="53351" className={inputClass} />
                         <input type="number" name="itemAjusteAnterior" value={form.itemAjusteAnterior} onChange={manejarCambio} placeholder="26" className={inputClass} />
 
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste Actual [Ej: -81]</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes actual [Ej: -81]</label>
                         <label className="block text-[10px] text-slate-500 dark:text-slate-400"> </label>
                         <input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} placeholder="-81" className={inputClass} />
                         
@@ -540,7 +619,7 @@
                   {registros.length === 0 && !mostrarFormulario && <div className="text-center py-10 text-slate-400">Sin registros. Pulsa + para comenzar.</div>}
                   
                   <div className="text-center pt-8 pb-4">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.2 - Prorrateo de consumo - Hecho por GDC</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.3 - Prorrateo de consumo - Hecho por GDC</p>
                   </div>
                 </div>
               </>
