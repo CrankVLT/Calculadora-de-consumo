@@ -168,7 +168,8 @@
             itemAguaPotable: currentReg.itemAguaPotable || '', 
             itemRecoleccion: currentReg.itemRecoleccion || '', 
             itemTratamiento: currentReg.itemTratamiento || '', 
-            itemReliquidacion: currentReg.itemReliquidacion || '' 
+            itemReliquidacion: currentReg.itemReliquidacion || '',
+            itemLeyRedondeo: currentReg.itemLeyRedondeo || ''
           };
         }
       };
@@ -195,7 +196,7 @@
         const factorCasa1 = consTotal > 0 ? (consCasa1 / consTotal) : 0;
         const metodo = datos.metodoCalculo || 'hibrido'; 
 
-        let detInq, detCasa1, totalBoleta;
+        let detInq, totalBoleta;
 
         if (serviceKey === 'luz') {
           const admin = parseFloat(datos.itemAdmin) || 0;
@@ -211,21 +212,37 @@
           } else {
             detInq = { admin: admin * factorInq, electricidad: electricity * factorInq, transport: transporte * factorInq, ajustes: ajustesVars * factorInq };
           }
-        } else { // agua
+        } else { // agua - LÓGICA ACTUALIZADA PARA DETALLE COMPLETO
           const fijo = parseFloat(datos.itemCargoFijo) || 0;
           const agua = parseFloat(datos.itemAguaPotable) || 0;
           const recoleccion = parseFloat(datos.itemRecoleccion) || 0;
           const tratamiento = parseFloat(datos.itemTratamiento) || 0;
           const reliquidacion = parseFloat(datos.itemReliquidacion) || 0;
+          const redondeo = parseFloat(datos.itemLeyRedondeo) || 0;
           
-          const totalVariables = agua + recoleccion + tratamiento;
-          const totalOtrosFijos = reliquidacion;
-          totalBoleta = fijo + totalVariables + totalOtrosFijos;
+          totalBoleta = fijo + agua + recoleccion + tratamiento + reliquidacion + redondeo;
 
           if (metodo === 'hibrido') {
-            detInq = { fijo: fijo / 2, variables: totalVariables * factorInq, otros: totalOtrosFijos / 2 };
+            // Agua potable, recoleccion y tratamiento son 100% variables
+            // Fijo, Reliquidacion y Redondeo son 50/50
+            detInq = { 
+                fijo: fijo / 2, 
+                agua: agua * factorInq, 
+                recoleccion: recoleccion * factorInq, 
+                tratamiento: tratamiento * factorInq,
+                reliquidacion: reliquidacion / 2,
+                redondeo: redondeo / 2
+            };
           } else { 
-            detInq = { fijo: fijo * factorInq, variables: totalVariables * factorInq, otros: totalOtrosFijos * factorInq };
+            // Todo proporcional
+            detInq = { 
+                fijo: fijo * factorInq, 
+                agua: agua * factorInq, 
+                recoleccion: recoleccion * factorInq, 
+                tratamiento: tratamiento * factorInq, 
+                reliquidacion: reliquidacion * factorInq,
+                redondeo: redondeo * factorInq
+            };
           }
         }
 
@@ -252,17 +269,32 @@
             } else {
                 detCasa1 = { admin: admin * factorCasa1, electricidad: electricidad * factorCasa1, transport: transporte * factorCasa1, ajustes: ajustesVars * factorCasa1 };
             }
-        } else { 
+        } else { // agua - DETALLE COMPLETO
             const fijo = parseFloat(reg.itemCargoFijo) || 0;
             const agua = parseFloat(reg.itemAguaPotable) || 0;
             const recoleccion = parseFloat(reg.itemRecoleccion) || 0;
             const tratamiento = parseFloat(reg.itemTratamiento) || 0;
-            const totalVariables = agua + recoleccion + tratamiento;
             const reliquidacion = parseFloat(reg.itemReliquidacion) || 0;
+            const redondeo = parseFloat(reg.itemLeyRedondeo) || 0;
+
             if (reg.metodoCalculo === 'hibrido') {
-                detCasa1 = { fijo: fijo / 2, variables: totalVariables * factorCasa1, otros: reliquidacion / 2 };
+                detCasa1 = { 
+                    fijo: fijo / 2, 
+                    agua: agua * factorCasa1, 
+                    recoleccion: recoleccion * factorCasa1,
+                    tratamiento: tratamiento * factorCasa1,
+                    reliquidacion: reliquidacion / 2,
+                    redondeo: redondeo / 2
+                };
             } else {
-                detCasa1 = { fijo: fijo * factorCasa1, variables: totalVariables * factorCasa1, otros: reliquidacion * factorCasa1 };
+                detCasa1 = { 
+                    fijo: fijo * factorCasa1, 
+                    agua: agua * factorCasa1, 
+                    recoleccion: recoleccion * factorCasa1,
+                    tratamiento: tratamiento * factorCasa1,
+                    reliquidacion: reliquidacion * factorCasa1,
+                    redondeo: redondeo * factorCasa1
+                };
             }
         }
         return detCasa1;
@@ -309,7 +341,6 @@
         const nroBol = reg.nroBoleta ? `Nro ${reg.nroBoleta}` : '';
         const B = paraEmail ? '' : '*'; 
         
-        // FIX: Definir unidad aquí manualmente para evitar error de variable
         const unidad = serviceKey === 'luz' ? 'kWh' : 'm³';
 
         let itemDesglose = [];
@@ -323,8 +354,11 @@
         } else {
             itemDesglose = [
                 `1. Cargo Fijo ${metodoLabel}: ${formatoPeso(detalles.fijo)}`,
-                `2. Agua Potable + Alcantarillado (Var.): ${formatoPeso(detalles.variables)}`,
-                `3. Reliquidación/Otros ${metodoLabel}: ${formatoPeso(detalles.otros)}`
+                `2. Agua Potable (Var.): ${formatoPeso(detalles.agua)}`,
+                `3. Recolección A.S. (Var.): ${formatoPeso(detalles.recoleccion)}`,
+                `4. Tratamiento A.S. (Var.): ${formatoPeso(detalles.tratamiento)}`,
+                `5. Reliquidación ${metodoLabel}: ${formatoPeso(detalles.reliquidacion)}`,
+                `6. Ley Redondeo ${metodoLabel}: ${formatoPeso(detalles.redondeo)}`
             ];
         }
 
@@ -414,8 +448,11 @@ ${itemDesglose.join('\n')}
         } else {
             desgloseItems = [
                 { key: 'Cargo Fijo', value: desglose.fijo },
-                { key: 'Agua Potable + Alcantarillado', value: desglose.variables },
-                { key: 'Reliquidación/Otros', value: desglose.otros }
+                { key: 'Agua Potable', value: desglose.agua },
+                { key: 'Recolección A.S.', value: desglose.recoleccion },
+                { key: 'Tratamiento A.S.', value: desglose.tratamiento },
+                { key: 'Reliquidación', value: desglose.reliquidacion },
+                { key: 'Ley Redondeo', value: desglose.redondeo }
             ];
         }
 
@@ -454,7 +491,7 @@ ${itemDesglose.join('\n')}
                   <div className="space-y-1">
                     {desgloseItems.map(item => (
                         <div key={item.key} className="flex justify-between text-slate-700">
-                          <span className="capitalize">{item.key}:</span><span className="font-mono">{formatoPeso(item.value)}</span>
+                          <span className="capitalize text-xs">{item.key}:</span><span className="font-mono">{formatoPeso(item.value)}</span>
                         </div>
                     ))}
                   </div>
@@ -553,9 +590,10 @@ ${itemDesglose.join('\n')}
                     <input type="number" name="itemRecoleccion" value={form.itemRecoleccion} onChange={manejarCambio} placeholder="3519" className={inputClassLocal} />
                     <input type="number" name="itemTratamiento" value={form.itemTratamiento} onChange={manejarCambio} placeholder="2422" className={inputClassLocal} />
 
-                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Reliquidación/Otros</label>
-                    <label className="block text-[10px] text-slate-500 dark:text-slate-400"></label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Reliquidación DS N°47</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Descuento Ley Redondeo [Ej: -8]</label>
                     <input type="number" name="itemReliquidacion" value={form.itemReliquidacion} onChange={manejarCambio} placeholder="1993" className={inputClassLocal} />
+                    <input type="number" name="itemLeyRedondeo" value={form.itemLeyRedondeo} onChange={manejarCambio} placeholder="-8" className={inputClassLocal} />
                   </>
                 )}
                 
@@ -688,7 +726,7 @@ ${itemDesglose.join('\n')}
                 <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800">
                     <h3 className="font-bold text-cyan-700 dark:text-cyan-300 mb-3 flex items-center gap-2"><Icon name="Droplet" className="w-4 h-4"/> Cálculo para Agua (m³)</h3>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">1. Método Híbrido (Recomendado):</p>
-                    <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 font-mono text-[10px]"><li>**Variable (% Consumo):** (Agua Potable + Recolección + Tratamiento) × % Consumo</li><li>**Fijo (50/50):** (Cargo Fijo + Reliquidación/Otros) ÷ 2</li></ul>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 font-mono text-[10px]"><li>**Variable (% Consumo):** (Agua Potable + Recolección + Tratamiento) × % Consumo</li><li>**Fijo (50/50):** (Cargo Fijo + Reliquidación + Ley Redondeo) ÷ 2</li></ul>
                     <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-2 font-bold text-cyan-600 dark:text-cyan-400 text-xs">Total = Variable + Fijo</p>
                 </div>
             </div>
