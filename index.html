@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Calculadora Luz</title>
+  <title>EquiMaster GDC</title>
   
-  <!-- Estilos (Tailwind CSS) con configuración de Modo Oscuro -->
+  <!-- Estilos (Tailwind CSS) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -13,19 +13,18 @@
       theme: {
         extend: {
           colors: {
-            slate: { 850: '#1e293b', 900: '#0f172a', 950: '#020617' }
+            slate: { 850: '#1e293b', 900: '#0f172a', 950: '#020617' },
+            cyan: { 850: '#155e75', 950: '#083344' } 
           }
         }
       }
     }
   </script>
   
-  <!-- Motor React -->
+  <!-- Motor React y Librerías -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Iconos -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
@@ -62,55 +61,51 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useMemo } = React;
 
     // --- ICONOS ---
     const Icon = ({ name, className }) => {
       const icons = {
-        Plus: <path d="M5 12h14M12 5v14" />,
-        Trash2: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></>,
-        Edit2: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
-        Save: <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />,
-        X: <path d="M18 6 6 18M6 6l12 12" />,
-        History: <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" />,
-        Calculator: <rect width="16" height="20" x="4" y="2" rx="2" />,
+        Plus: <path d="M5 12h14M12 5v14" />, Trash2: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></>,
+        Edit2: <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />, Save: <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />,
+        X: <path d="M18 6 6 18M6 6l12 12" />, History: <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" />,
         Zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
-        Home: <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
-        User: <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />,
-        HelpCircle: <circle cx="12" cy="12" r="10" />,
-        CheckCircle2: <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />,
-        FileText: <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />,
-        Share2: <circle cx="18" cy="5" r="3" />,
-        Printer: <path d="M6 9V2h12v7" />,
-        Moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
-        Sun: <circle cx="12" cy="12" r="4" />,
-        Eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />,
-        Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />,
-        // Corrección aquí: Envuelto en fragmento <></>
+        Droplet: <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />,
+        HelpCircle: <circle cx="12" cy="12" r="10" />, CheckCircle2: <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />,
+        FileText: <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />, Share2: <circle cx="18" cy="5" r="3" />,
+        Printer: <path d="M6 9V2h12v7" />, Moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />, Sun: <circle cx="12" cy="12" r="4" />,
+        Eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />, Settings: <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />,
         Mail: <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>
       };
       return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || <circle cx="12" cy="12" r="10" />}</svg>;
     };
 
+    // --- UTILIDADES ---
+    const formatearFecha = (fecha) => {
+      if(!fecha) return '';
+      const [y, m, d] = fecha.split('-');
+      return `${d}/${m}/${y.slice(2)}`; // DD/MM/AA
+    };
+
     // --- COMPONENTE AVISO INSTALAR ---
-    const InstallPrompt = () => {
+    const InstallPrompt = ({ service }) => {
       const [visible, setVisible] = useState(false);
       const [isIOS, setIsIOS] = useState(false);
       useEffect(() => {
-        const dismissed = localStorage.getItem('install_prompt_dismissed');
+        const dismissed = localStorage.getItem(`install_prompt_${service}_dismissed`);
         if (dismissed) return;
         const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         setIsIOS(ios);
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) setVisible(true);
-      }, []);
-      const cerrar = () => { setVisible(false); localStorage.setItem('install_prompt_dismissed', 'true'); };
+      }, [service]);
+      const cerrar = () => { setVisible(false); localStorage.setItem(`install_prompt_${service}_dismissed`, 'true'); };
       if (!visible) return null;
       return (
         <div className="fixed bottom-4 left-4 right-4 bg-slate-800 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-start gap-4 border border-slate-700 animation-fade-in no-print">
-          <div className="bg-blue-600 p-2 rounded-lg shrink-0"><Icon name="Zap" className="w-6 h-6 text-white" /></div>
+          <div className={`p-2 rounded-lg shrink-0 ${service === 'luz' ? 'bg-blue-600' : 'bg-cyan-600'}`}><Icon name={service === 'luz' ? "Zap" : "Droplet"} className="w-6 h-6 text-white" /></div>
           <div className="flex-1">
-            <h4 className="font-bold text-sm mb-1">Instalar EquiVolt</h4>
+            <h4 className="font-bold text-sm mb-1">Instalar EquiMaster</h4>
             <p className="text-xs text-slate-300">{isIOS ? <span>Toca <Icon name="Share2" className="inline w-3 h-3" /> y <strong>"Agregar a Inicio"</strong>.</span> : <span>Toca menú (⋮) y <strong>"Agregar a pantalla principal"</strong>.</span>}</p>
           </div>
           <button onClick={cerrar}><Icon name="X" className="w-5 h-5 text-slate-400 hover:text-white" /></button>
@@ -118,520 +113,590 @@
       );
     };
 
-    // --- APP PRINCIPAL ---
-    function CalculadoraLuz() {
+    // --- LÓGICA DE CÁLCULO ---
+    const useCalculadoraLogic = (serviceKey) => {
       const [registros, setRegistros] = useState([]);
-      const [vistaActual, setVistaActual] = useState('calculadora'); 
       const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
-      const [verReciboCasa1, setVerReciboCasa1] = useState(false); 
-      const [darkMode, setDarkMode] = useState(false);
-      const [emailDestino, setEmailDestino] = useState(''); // Estado para el email
-
-      // Config inicial Dark Mode y Email
-      useEffect(() => {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          setDarkMode(true);
-        }
-        // Cargar email guardado si existe
-        const savedEmail = localStorage.getItem('email_destino_chepe');
-        if (savedEmail) setEmailDestino(savedEmail);
-      }, []);
-
-      // Efecto Dark Mode Global
-      useEffect(() => {
-        if (darkMode) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }, [darkMode]);
-
-      const toggleTheme = () => setDarkMode(!darkMode);
-
-      // Estilos Comunes
-      const inputClass = "w-full p-2 rounded-lg border text-sm outline-none transition-colors bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400";
-      const labelClass = "text-xs font-bold mb-1 block text-slate-600 dark:text-slate-300";
-      const cardClass = "bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xl mb-6 animation-fade-in border border-slate-200 dark:border-slate-700 transition-colors";
-
-      // Formulario
-      const [form, setForm] = useState({
-        id: null,
-        domicilio: '', etiquetaCasa1: 'Casa 1', fecha: new Date().toISOString().split('T')[0],
-        itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
-        consumoTotal: '', lecturaAnterior: '', lecturaActual: '',
-        metodoCalculo: 'hibrido' 
-      });
-      
-      const [modoEdicion, setModoEdicion] = useState(false);
+      const [verReciboCasa1, setVerReciboCasa1] = useState(false);
       const [mostrarFormulario, setMostrarFormulario] = useState(false);
+      const [modoEdicion, setModoEdicion] = useState(false);
+      
+      const LS_HISTORY_KEY = `historial_${serviceKey}_chepe`;
 
-      useEffect(() => {
-        try {
-          const datos = localStorage.getItem('historial_luz_chepe');
-          if (datos) setRegistros(JSON.parse(datos));
-        } catch (e) {}
-      }, []);
+      // Función para generar el formulario inicial
+      const getInitialForm = (isNew = true, currentReg = {}) => {
+        let ultimaLectura = '';
+        let ultimoDom = '';
+        let ultimoEtiqueta = 'Casa 1';
 
+        if (registros.length > 0 && isNew) {
+          const ordenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          ultimaLectura = ordenados[0].lecturaActual;
+          ultimoDom = ordenados[0].domicilio || '';
+          ultimoEtiqueta = ordenados[0].etiquetaCasa1 || 'Casa 1';
+        } else if (!isNew) {
+            ultimaLectura = currentReg.lecturaAnterior;
+            ultimoDom = currentReg.domicilio;
+            ultimoEtiqueta = currentReg.etiquetaCasa1;
+        }
+
+        const baseForm = { 
+            id: currentReg.id || Date.now(), 
+            domicilio: currentReg.domicilio || ultimoDom, 
+            etiquetaCasa1: currentReg.etiquetaCasa1 || ultimoEtiqueta, 
+            fecha: currentReg.fecha || new Date().toISOString().split('T')[0],
+            nroBoleta: currentReg.nroBoleta || '', 
+            consumoTotal: currentReg.consumoTotal || '', 
+            lecturaAnterior: currentReg.lecturaAnterior || ultimaLectura, 
+            lecturaActual: currentReg.lecturaActual || '', 
+            metodoCalculo: currentReg.metodoCalculo || 'hibrido' 
+        };
+
+        if (serviceKey === 'luz') {
+          return { 
+            ...baseForm, 
+            itemAdmin: currentReg.itemAdmin || 1029, 
+            itemElectricidad: currentReg.itemElectricidad || '', 
+            itemTransporte: currentReg.itemTransporte || '', 
+            itemAjusteAnterior: currentReg.itemAjusteAnterior || '', 
+            itemAjusteActual: currentReg.itemAjusteActual || '' 
+          };
+        } else { // agua
+          return { 
+            ...baseForm, 
+            itemCargoFijo: currentReg.itemCargoFijo || 914, 
+            itemAguaPotable: currentReg.itemAguaPotable || '', 
+            itemRecoleccion: currentReg.itemRecoleccion || '', 
+            itemTratamiento: currentReg.itemTratamiento || '', 
+            itemReliquidacion: currentReg.itemReliquidacion || '' 
+          };
+        }
+      };
+
+      const [form, setForm] = useState(getInitialForm()); 
+      
       useEffect(() => {
-        try { localStorage.setItem('historial_luz_chepe', JSON.stringify(registros)); } catch (e) {}
-      }, [registros]);
+        try { const datos = localStorage.getItem(LS_HISTORY_KEY); if (datos) setRegistros(JSON.parse(datos)); } catch (e) {}
+      }, [serviceKey]);
+      
+      useEffect(() => {
+        try { localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(registros)); } catch (e) {}
+      }, [registros, serviceKey]);
 
       const formatoPeso = (v) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(Math.round(v));
 
-      // LÓGICA DE CÁLCULO
-      const calcularPago = (datos) => {
-        const admin = parseFloat(datos.itemAdmin) || 0;
-        const electricidad = parseFloat(datos.itemElectricidad) || 0;
-        const transporte = parseFloat(datos.itemTransporte) || 0;
-        const ajusteAnt = parseFloat(datos.itemAjusteAnterior) || 0;
-        const ajusteAct = parseFloat(datos.itemAjusteActual) || 0;
-        const ajustesVars = ajusteAnt + ajusteAct;
-        const totalBoleta = admin + electricidad + transporte + ajustesVars;
-
+      const calcularPago = useMemo(() => (datos) => {
         const consTotal = parseFloat(datos.consumoTotal) || 1; 
         const lecAnt = parseFloat(datos.lecturaAnterior) || 0;
         const lecAct = parseFloat(datos.lecturaActual) || 0;
         const consInq = lecAct - lecAnt;
         const consCasa1 = consTotal - consInq;
-
         const factorInq = consTotal > 0 ? (consInq / consTotal) : 0;
         const factorCasa1 = consTotal > 0 ? (consCasa1 / consTotal) : 0;
-
         const metodo = datos.metodoCalculo || 'hibrido'; 
-        let detInq, detCasa1;
 
-        if (metodo === 'hibrido') {
-          detInq = {
-            admin: admin / 2,
-            electricidad: electricidad * factorInq,
-            transporte: transporte / 2, 
-            ajustes: ajustesVars / 2
-          };
-          detCasa1 = {
-            admin: admin / 2,
-            electricidad: electricidad * factorCasa1,
-            transporte: transporte / 2, 
-            ajustes: ajustesVars / 2
-          };
-        } else {
-          detInq = {
-            admin: admin * factorInq,
-            electricidad: electricidad * factorInq,
-            transporte: transporte * factorInq,
-            ajustes: ajustesVars * factorInq
-          };
-          detCasa1 = {
-            admin: admin * factorCasa1,
-            electricidad: electricidad * factorCasa1,
-            transporte: transporte * factorCasa1,
-            ajustes: ajustesVars * factorCasa1
-          };
+        let detInq, detCasa1, totalBoleta;
+
+        if (serviceKey === 'luz') {
+          const admin = parseFloat(datos.itemAdmin) || 0;
+          const electricity = parseFloat(datos.itemElectricidad) || 0; 
+          const transporte = parseFloat(datos.itemTransporte) || 0;
+          const ajusteAnt = parseFloat(datos.itemAjusteAnterior) || 0;
+          const ajusteAct = parseFloat(datos.itemAjusteActual) || 0;
+          const ajustesVars = ajusteAnt + ajusteAct;
+          totalBoleta = admin + electricity + transporte + ajustesVars;
+
+          if (metodo === 'hibrido') {
+            detInq = { admin: admin / 2, electricidad: electricity * factorInq, transport: transporte / 2, ajustes: ajustesVars / 2 };
+          } else {
+            detInq = { admin: admin * factorInq, electricidad: electricity * factorInq, transport: transporte * factorInq, ajustes: ajustesVars * factorInq };
+          }
+        } else { // agua
+          const fijo = parseFloat(datos.itemCargoFijo) || 0;
+          const agua = parseFloat(datos.itemAguaPotable) || 0;
+          const recoleccion = parseFloat(datos.itemRecoleccion) || 0;
+          const tratamiento = parseFloat(datos.itemTratamiento) || 0;
+          const reliquidacion = parseFloat(datos.itemReliquidacion) || 0;
+          
+          const totalVariables = agua + recoleccion + tratamiento;
+          const totalOtrosFijos = reliquidacion;
+          totalBoleta = fijo + totalVariables + totalOtrosFijos;
+
+          if (metodo === 'hibrido') {
+            detInq = { fijo: fijo / 2, variables: totalVariables * factorInq, otros: totalOtrosFijos / 2 };
+          } else { 
+            detInq = { fijo: fijo * factorInq, variables: totalVariables * factorInq, otros: totalOtrosFijos * factorInq };
+          }
         }
 
-        const totalInq = Math.round(detInq.admin + detInq.electricidad + detInq.transporte + detInq.ajustes);
+        const totalInq = Math.round(Object.values(detInq).reduce((sum, val) => sum + val, 0));
         const totalCasa1 = Math.round(totalBoleta - totalInq); 
 
         return {
           totalInquilino: totalInq, consumoInquilino: consInq, detInquilino: detInq,
-          totalCasa1, consumoCasa1: consCasa1, detCasa1,
-          totalBoleta: Math.round(totalBoleta),
-          metodoUsado: metodo
+          totalCasa1, consumoCasa1: consCasa1, totalBoleta: Math.round(totalBoleta), metodoUsado: metodo,
+          factorInq: factorInq, factorCasa1: factorCasa1
         };
-      };
+      }, [serviceKey]); 
 
-      const manejarCambio = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-      const prepararNuevoCalculo = () => {
-        let ultimaLectura = '', ultimoDom = '', ultimoEtiqueta = '';
-        if (registros.length > 0) {
-          const ordenados = [...registros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-          ultimaLectura = ordenados[0].lecturaActual;
-          ultimoDom = ordenados[0].domicilio || '';
-          ultimoEtiqueta = ordenados[0].etiquetaCasa1 || 'Casa 1';
+      const obtenerDetalleCasa1 = (reg, totalBoleta) => {
+        const factorCasa1 = 1 - reg.factorInq; 
+        let detCasa1 = {};
+        if (serviceKey === 'luz') {
+            const admin = parseFloat(reg.itemAdmin) || 0;
+            const electricidad = parseFloat(reg.itemElectricidad) || 0;
+            const transporte = parseFloat(reg.itemTransporte) || 0;
+            const ajustesVars = (parseFloat(reg.itemAjusteAnterior) || 0) + (parseFloat(reg.itemAjusteActual) || 0);
+            if (reg.metodoCalculo === 'hibrido') {
+                detCasa1 = { admin: admin / 2, electricidad: electricidad * factorCasa1, transport: transporte / 2, ajustes: ajustesVars / 2 };
+            } else {
+                detCasa1 = { admin: admin * factorCasa1, electricidad: electricidad * factorCasa1, transport: transporte * factorCasa1, ajustes: ajustesVars * factorCasa1 };
+            }
+        } else { 
+            const fijo = parseFloat(reg.itemCargoFijo) || 0;
+            const agua = parseFloat(reg.itemAguaPotable) || 0;
+            const recoleccion = parseFloat(reg.itemRecoleccion) || 0;
+            const tratamiento = parseFloat(reg.itemTratamiento) || 0;
+            const totalVariables = agua + recoleccion + tratamiento;
+            const reliquidacion = parseFloat(reg.itemReliquidacion) || 0;
+            if (reg.metodoCalculo === 'hibrido') {
+                detCasa1 = { fijo: fijo / 2, variables: totalVariables * factorCasa1, otros: reliquidacion / 2 };
+            } else {
+                detCasa1 = { fijo: fijo * factorCasa1, variables: totalVariables * factorCasa1, otros: reliquidacion * factorCasa1 };
+            }
         }
-        setForm({
-          id: Date.now(), domicilio: ultimoDom, etiquetaCasa1: ultimoEtiqueta, fecha: new Date().toISOString().split('T')[0],
-          itemAdmin: 1029, itemElectricidad: '', itemTransporte: '', itemAjusteAnterior: '', itemAjusteActual: '',   
-          consumoTotal: '', lecturaAnterior: ultimaLectura, lecturaActual: '', metodoCalculo: 'hibrido'
-        });
-        setModoEdicion(false); setMostrarFormulario(true); setVistaActual('calculadora');
-      };
-
-      const guardarRegistro = (e) => {
-        e.preventDefault();
-        const resultado = calcularPago(form);
-        const registro = { ...form, ...resultado };
-        setRegistros(modoEdicion ? registros.map(r => r.id === form.id ? registro : r) : [registro, ...registros]);
-        setMostrarFormulario(false);
-      };
-
-      const editarRegistro = (reg) => {
-        setForm({ ...reg, metodoCalculo: reg.metodoCalculo || 'hibrido' });
-        setModoEdicion(true); setMostrarFormulario(true); setVistaActual('calculadora');
+        return detCasa1;
       };
 
       const eliminarRegistro = (id) => {
         if (confirm('¿Borrar registro?')) setRegistros(registros.filter(r => r.id !== id));
       };
 
-      const abrirRecibo = (reg) => {
-        const resultado = calcularPago(reg); 
-        setReciboSeleccionado({ ...reg, ...resultado });
-        setVerReciboCasa1(false);
+      const prepararNuevoCalculo = () => {
+        setForm(getInitialForm(true, {}));
+        setModoEdicion(false); 
+        setMostrarFormulario(true); 
       };
 
-      const compartirWhatsapp = async () => {
-        if (!reciboSeleccionado) return;
-        
-        const esCasa1 = verReciboCasa1;
-        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario');
-        const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
-        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
-        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
-        const metodoLabel = reciboSeleccionado.metodoUsado === 'proporcional' ? '(Prop.)' : '(50%)';
-
-        const texto = `
-🧾 *RECIBO EQUIVOLT - ${nombre.toUpperCase()}*
-📅 Fecha: ${reciboSeleccionado.fecha}
-
-📊 *Consumo:*
-• Total Medidor: ${reciboSeleccionado.consumoTotal} kWh
-• Su Consumo: ${consumo} kWh
-
-💰 *Desglose a Pagar:*
-1. Administración del servicio ${metodoLabel}: ${formatoPeso(detalles.admin)}
-2. Electricidad consumida: ${formatoPeso(detalles.electricidad)}
-3. Transporte de Electricidad ${metodoLabel}: ${formatoPeso(detalles.transporte)}
-4. Ajustes (Mes Ant/Act) ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
-
-💵 *TOTAL: ${formatoPeso(total)}*
---------------------------------
-(Calculado sobre boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)})`.trim();
-        
-        if (navigator.share) { 
-          try { await navigator.share({ title: `Recibo ${nombre}`, text: texto }); } catch (e) {} 
-        } else { 
-          const ta = document.createElement("textarea"); 
-          ta.value = texto; 
-          document.body.appendChild(ta); 
-          ta.select(); 
-          try {
-            document.execCommand('copy'); 
-            alert("Copiado al portapapeles."); 
-          } catch (e) {
-            alert("No se pudo copiar.");
-          }
-          document.body.removeChild(ta); 
-        }
+      const editarRegistro = (reg) => {
+        setForm(getInitialForm(false, reg));
+        setModoEdicion(true); 
+        setMostrarFormulario(true); 
       };
 
-      // NUEVA FUNCIÓN: ENVIAR POR CORREO
-      const enviarCorreo = () => {
-        if (!reciboSeleccionado) return;
+      const guardarRegistro = (e) => {
+        e.preventDefault();
+        const resultado = calcularPago(form);
+        const registro = { ...form, ...resultado };
         
-        let email = emailDestino;
-        if (!email) {
-          email = prompt("Ingresa el correo del destinatario:");
-          if (email) {
-            setEmailDestino(email);
-            localStorage.setItem('email_destino_chepe', email);
-          } else {
-            return; // Cancelado
-          }
+        if (modoEdicion) {
+            setRegistros(registros.map(r => r.id === form.id ? registro : r));
         } else {
-            // Confirmar si quiere usar el mismo o cambiar
-            // Opcional: Podríamos hacer un input en el modal, pero por simpleza usamos prompt si quiere cambiar
+            setRegistros([registro, ...registros]);
+        }
+        setMostrarFormulario(false);
+      };
+      
+      const manejarCambio = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+      // --- GENERADOR DE TEXTO CORREGIDO ---
+      const generarTexto = (reg, esCasa1, paraEmail = false) => {
+        const nombre = esCasa1 ? (reg.etiquetaCasa1 || 'Principal') : (reg.domicilio || 'Secundario');
+        const total = esCasa1 ? reg.totalCasa1 : reg.totalInquilino;
+        const detalles = esCasa1 ? obtenerDetalleCasa1(reg, reg.totalBoleta) : reg.detInquilino;
+        const consumo = esCasa1 ? reg.consumoCasa1 : reg.consumoInquilino;
+        const metodoLabel = reg.metodoUsado === 'proporcional' ? '(Prop.)' : '(50%)';
+        const nroBol = reg.nroBoleta ? `Nro ${reg.nroBoleta}` : '';
+        const B = paraEmail ? '' : '*'; 
+        
+        // FIX: Definir unidad aquí manualmente para evitar error de variable
+        const unidad = serviceKey === 'luz' ? 'kWh' : 'm³';
+
+        let itemDesglose = [];
+        if (serviceKey === 'luz') {
+            itemDesglose = [
+                `1. Administración del servicio ${metodoLabel}: ${formatoPeso(detalles.admin)}`,
+                `2. Electricidad consumida: ${formatoPeso(detalles.electricidad)}`,
+                `3. Transporte de Electricidad ${metodoLabel}: ${formatoPeso(detalles.transport)}`,
+                `4. Ajustes (Mes Ant/Act) ${metodoLabel}: ${formatoPeso(detalles.ajustes)}`
+            ];
+        } else {
+            itemDesglose = [
+                `1. Cargo Fijo ${metodoLabel}: ${formatoPeso(detalles.fijo)}`,
+                `2. Agua Potable + Alcantarillado (Var.): ${formatoPeso(detalles.variables)}`,
+                `3. Reliquidación/Otros ${metodoLabel}: ${formatoPeso(detalles.otros)}`
+            ];
         }
 
+        return `
+🧾 ${B}RECIBO ${serviceKey.toUpperCase()} ${nroBol}${B}
+🏠 ${B}${nombre.toUpperCase()}${B}
+📅 Fecha: ${formatearFecha(reg.fecha)}
+
+📊 ${B}Consumo:${B}
+• Total Medidor: ${reg.consumoTotal} ${unidad}
+• Su Consumo: ${consumo} ${unidad}
+
+💰 ${B}Desglose a Pagar:${B}
+${itemDesglose.join('\n')}
+
+💵 ${B}TOTAL: ${formatoPeso(total)}${B}
+--------------------------------
+(Boleta Total: ${formatoPeso(reg.totalBoleta)})`.trim();
+      };
+
+      // --- COMPARTIR ---
+      const compartirGeneral = async (reg, esCasa1) => {
+        const texto = generarTexto(reg, esCasa1, false);
+        
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: `Recibo ${serviceKey.toUpperCase()}`, text: texto });
+            } catch (err) { 
+                console.log('Share cancelado'); 
+            }
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = texto;
+            textArea.style.position = 'fixed';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert(`Texto copiado al portapapeles.`);
+            } catch (err) {
+                alert('No se pudo copiar.');
+            }
+            document.body.removeChild(textArea);
+        }
+      };
+
+      // --- CORREO ---
+      const enviarCorreo = (reg, esCasa1) => {
+        const texto = generarTexto(reg, esCasa1, true);
+        const nombre = esCasa1 ? (reg.etiquetaCasa1 || 'Principal') : (reg.domicilio || 'Secundario');
+        const nroBol = reg.nroBoleta ? `Nro ${reg.nroBoleta}` : '';
+        const asunto = `Recibo de ${serviceKey.toUpperCase()} ${nroBol} - ${nombre}`;
+        
+        window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(texto)}`;
+      };
+
+      return {
+        registros, formatoPeso, calcularPago, 
+        prepararNuevoCalculo, guardarRegistro, editarRegistro, eliminarRegistro,
+        abrirRecibo: (reg) => { setReciboSeleccionado(reg); setVerReciboCasa1(false); }, 
+        reciboSeleccionado, setReciboSeleccionado, obtenerDetalleCasa1,
+        verReciboCasa1, setVerReciboCasa1, compartirGeneral, enviarCorreo,
+        mostrarFormulario, setMostrarFormulario, modoEdicion, setModoEdicion,
+        form, manejarCambio, setForm
+      };
+    };
+
+    // --- COMPONENTES INDEPENDIENTES ---
+
+    const ReciboModal = ({ reg, verReciboCasa1, setVerReciboCasa1, setReciboSeleccionado, serviceKey, unit, formatoPeso, obtenerDetalleCasa1, compartirGeneral, enviarCorreo }) => {
         const esCasa1 = verReciboCasa1;
-        const nombre = esCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario');
-        const total = esCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino;
-        const detalles = esCasa1 ? reciboSeleccionado.detCasa1 : reciboSeleccionado.detInquilino;
-        const consumo = esCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino;
-        const metodoLabel = reciboSeleccionado.metodoUsado === 'proporcional' ? '(Proporcional)' : '(50%)';
+        const nombre = esCasa1 ? (reg.etiquetaCasa1 || 'Principal') : (reg.domicilio || 'Secundario');
+        const total = esCasa1 ? reg.totalCasa1 : reg.totalInquilino;
+        const desglose = esCasa1 ? obtenerDetalleCasa1(reg, reg.totalBoleta) : reg.detInquilino;
+        const consumo = esCasa1 ? reg.consumoCasa1 : reg.consumoInquilino;
+        const accentColorClass = serviceKey === 'luz' ? 'text-blue-600 dark:text-blue-400' : 'text-cyan-600 dark:text-cyan-400';
 
-        const asunto = `Recibo de Luz - ${nombre} - ${reciboSeleccionado.fecha}`;
-        const cuerpo = `
-Hola,
+        let desgloseItems = [];
+        if (serviceKey === 'luz') {
+            desgloseItems = [
+                { key: 'Administración del servicio', value: desglose.admin },
+                { key: 'Electricidad consumida', value: desglose.electricidad },
+                { key: 'Transporte de Electricidad', value: desglose.transport},
+                { key: 'Ajustes (Mes Ant/Act)', value: desglose.ajustes }
+            ];
+        } else {
+            desgloseItems = [
+                { key: 'Cargo Fijo', value: desglose.fijo },
+                { key: 'Agua Potable + Alcantarillado', value: desglose.variables },
+                { key: 'Reliquidación/Otros', value: desglose.otros }
+            ];
+        }
 
-Aquí tienes el detalle del cobro de luz correspondiente a la fecha ${reciboSeleccionado.fecha}.
+        return (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto border border-slate-200 dark:border-slate-800" onClick={e=>e.stopPropagation()}>
+              <div className="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl no-print">
+                <h3 className="font-bold flex gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
+                <button onClick={() => setReciboSeleccionado(null)} className="text-slate-400 hover:text-white"><Icon name="X" className="w-5 h-5"/></button>
+              </div>
+              
+              <div className="flex border-b border-slate-200 dark:border-slate-800 no-print bg-white dark:bg-slate-900">
+                  <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${esCasa1 ? `${accentColorClass} border-b-2 border-current` : 'text-slate-400 dark:text-slate-500'}`}>{reg.etiquetaCasa1 || 'Principal'}</button>
+                  <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${!esCasa1 ? `${accentColorClass} border-b-2 border-current` : 'text-slate-400 dark:text-slate-500'}`}>{reg.domicilio || 'Secundario'}</button>
+              </div>
+              
+              <div id="area-impresion" className="p-6 bg-white text-black">
+                <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
+                  <h2 className="text-xl font-black text-slate-900 uppercase">Recibo de {serviceKey === 'luz' ? 'Luz' : 'Agua'}</h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {reg.nroBoleta && <span>Nro: {reg.nroBoleta} <br/></span>}
+                    Fecha: {formatearFecha(reg.fecha)}
+                  </p>
+                </div>
+                <div className="text-center mb-6">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">Total a Pagar</p>
+                  <p className="text-4xl font-black text-slate-800 mt-1">{formatoPeso(total)}</p>
+                  <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-1 rounded-full mt-2 inline-block">
+                    {nombre}
+                  </span>
+                </div>
+                <div className="space-y-2 text-sm border-t pt-4">
+                  <div className="flex justify-between"><span className="text-slate-600">Consumo:</span><span className="font-mono">{consumo} {unit}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-600">Método:</span><span className="font-bold uppercase text-xs">{reg.metodoUsado}</span></div>
+                  <div className="my-2 border-b"></div>
+                  <div className="space-y-1">
+                    {desgloseItems.map(item => (
+                        <div key={item.key} className="flex justify-between text-slate-700">
+                          <span className="capitalize">{item.key}:</span><span className="font-mono">{formatoPeso(item.value)}</span>
+                        </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-lg"><span>TOTAL:</span><span>{formatoPeso(total)}</span></div>
+                </div>
+              </div>
 
---- RESUMEN ---
-Propiedad: ${nombre}
-Consumo Registrado: ${consumo} kWh
-Total a Pagar: ${formatoPeso(total)}
-
---- DESGLOSE DETALLADO ---
-1. Administración del servicio ${metodoLabel}: ${formatoPeso(detalles.admin)}
-2. Electricidad consumida: ${formatoPeso(detalles.electricidad)}
-3. Transporte de Electricidad ${metodoLabel}: ${formatoPeso(detalles.transporte)}
-4. Ajustes (Mes Ant/Act) ${metodoLabel}: ${formatoPeso(detalles.ajustes)}
-
-* Calculado sobre un total de boleta de ${formatoPeso(reciboSeleccionado.totalBoleta)} y un consumo total de ${reciboSeleccionado.consumoTotal} kWh.
-
-Saludos.
-        `.trim();
-
-        // Crear enlace mailto
-        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
-        window.location.href = mailtoLink;
+              <div className="p-4 pt-0 space-y-2 no-print bg-white dark:bg-slate-900 rounded-b-2xl">
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => compartirGeneral(reg, esCasa1)} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Share2" className="w-4 h-4" /> Compartir</button>
+                    <button onClick={() => enviarCorreo(reg, esCasa1)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Mail" className="w-4 h-4" /> Correo</button>
+                </div>
+                <button onClick={() => window.print()} className="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Printer" className="w-4 h-4" /> Guardar PDF</button>
+              </div>
+            </div>
+          </div>
+        );
       };
 
-      const cambiarEmail = () => {
-          const nuevoEmail = prompt("Ingresa el nuevo correo por defecto:", emailDestino);
-          if (nuevoEmail !== null) {
-              setEmailDestino(nuevoEmail);
-              localStorage.setItem('email_destino_chepe', nuevoEmail);
-          }
+      const Formulario = ({ form, manejarCambio, setForm, modoEdicion, setMostrarFormulario, guardarRegistro, serviceKey, formatoPeso, unit, calcularPago }) => {
+        const resultado = useMemo(() => calcularPago(form), [form, calcularPago]);
+        const totalBoletaCalculado = resultado.totalBoleta;
+
+        const primaryBgAccentClass = serviceKey === 'luz' ? 'focus:ring-blue-500 dark:focus:ring-blue-400' : 'focus:ring-cyan-500 dark:focus:ring-cyan-400';
+        const bgAccentLocalClass = serviceKey === 'luz' ? 'bg-blue-600' : 'bg-cyan-600';
+        const secondaryBgClass = serviceKey === 'luz' ? 'bg-purple-600' : 'bg-purple-600';
+        const inputClassLocal = "w-full p-2 rounded-lg border text-sm outline-none transition-colors bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 " + primaryBgAccentClass;
+        const labelClass = "text-xs font-bold mb-1 block text-slate-600 dark:text-slate-300";
+        const cardClass = "bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xl mb-6 animation-fade-in border border-slate-200 dark:border-slate-700 transition-colors";
+
+        const handleSetForm = (newMetodo) => {
+             setForm(prev => ({...prev, metodoCalculo: newMetodo})); 
+        };
+
+        return (
+          <div className={cardClass}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">{modoEdicion ? 'Editar' : 'Nuevo'}</h2>
+              <button onClick={() => setMostrarFormulario(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><Icon name="X" className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={guardarRegistro} className="space-y-4">
+              {/* Nombres */}
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={labelClass}>Principal</label><input type="text" name="etiquetaCasa1" value={form.etiquetaCasa1} onChange={manejarCambio} className={inputClassLocal} /></div>
+                <div><label className={labelClass}>Secundario</label><input type="text" name="domicilio" value={form.domicilio} onChange={manejarCambio} className={inputClassLocal} /></div>
+              </div>
+              
+              {/* Configuración de Cálculo */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                <label className="text-xs font-bold mb-2 block flex items-center gap-1 text-slate-700 dark:text-slate-300"><Icon name="Settings" className="w-3 h-3" /> Método de Cálculo</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => handleSetForm('hibrido')} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'hibrido' ? `${bgAccentLocalClass} text-white border-current shadow-md` : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                    Híbrido
+                  </button>
+                  <button type="button" onClick={() => handleSetForm('proporcional')} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'proporcional' ? `${secondaryBgClass} text-white border-current shadow-md` : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                    Proporcional
+                  </button>
+                </div>
+              </div>
+
+              {/* Datos Boleta */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                <div className="col-span-2 text-xs font-bold uppercase text-slate-400 mb-1">Datos Boleta</div>
+                
+                {/* NUEVO CAMPO NRO BOLETA */}
+                <div className="col-span-2 mb-1">
+                   <label className="block text-[10px] text-slate-500 dark:text-slate-400">Nro Boleta</label>
+                   <input type="text" name="nroBoleta" value={form.nroBoleta} onChange={manejarCambio} placeholder="Ej: 123456" className={inputClassLocal} />
+                </div>
+                
+                {serviceKey === 'luz' ? (
+                  <>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Administración del servicio [Ej: 1029]</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Transporte de Electricidad [Ej: 3875]</label>
+                    <input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} placeholder="1029" className={inputClassLocal} />
+                    <input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} placeholder="3875" className={inputClassLocal} />
+                    
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Electricidad consumida [Ej: 53351]</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes anterior [Ej: 26]</label>
+                    <input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} placeholder="53351" className={inputClassLocal} />
+                    <input type="number" name="itemAjusteAnterior" value={form.itemAjusteAnterior} onChange={manejarCambio} placeholder="26" className={inputClassLocal} />
+
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes actual [Ej: -81]</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400"> </label>
+                    <input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} placeholder="-81" className={inputClassLocal} />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Cargo Fijo [Ej: 914]</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Agua Potable [Ej: 4550]</label>
+                    <input type="number" name="itemCargoFijo" value={form.itemCargoFijo} onChange={manejarCambio} placeholder="914" className={inputClassLocal} />
+                    <input type="number" name="itemAguaPotable" value={form.itemAguaPotable} onChange={manejarCambio} placeholder="4550" className={inputClassLocal} />
+                    
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Recolección [Ej: 3519]</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Tratamiento [Ej: 2422]</label>
+                    <input type="number" name="itemRecoleccion" value={form.itemRecoleccion} onChange={manejarCambio} placeholder="3519" className={inputClassLocal} />
+                    <input type="number" name="itemTratamiento" value={form.itemTratamiento} onChange={manejarCambio} placeholder="2422" className={inputClassLocal} />
+
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400">Reliquidación/Otros</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400"></label>
+                    <input type="number" name="itemReliquidacion" value={form.itemReliquidacion} onChange={manejarCambio} placeholder="1993" className={inputClassLocal} />
+                  </>
+                )}
+                
+                <div className="col-span-2 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200 dark:border-slate-700"><span>Total Boleta:</span><span className="text-slate-800 dark:text-slate-200">{formatoPeso(totalBoletaCalculado)}</span></div>
+              </div>
+
+              <div><label className={labelClass}>Total {unit} Boleta</label><input type="number" name="consumoTotal" value={form.consumoTotal} onChange={manejarCambio} required className={inputClassLocal} /></div>
+              
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
+                <div className="col-span-2 text-xs font-bold uppercase text-slate-400">Lecturas Remarcador ({unit})</div>
+                <input type="number" name="lecturaAnterior" value={form.lecturaAnterior} onChange={manejarCambio} placeholder="Anterior" className={inputClassLocal} />
+                <input type="number" name="lecturaActual" value={form.lecturaActual} onChange={manejarCambio} placeholder="Actual" className={inputClassLocal} />
+              </div>
+
+              <button type="submit" className={`w-full ${bgAccentLocalClass} text-white py-3 rounded-xl font-bold shadow-lg transition-colors`}><Icon name="Save" className="w-5 h-5 inline mr-2" /> Guardar</button>
+            </form>
+          </div>
+        );
       };
 
-      const resultadoEnVivo = calcularPago(form);
+      const Historial = ({ registros, editarRegistro, eliminarRegistro, abrirRecibo, unit, formatoPeso, mostrarFormulario, serviceKey }) => (
+        <div className="space-y-4 pb-20 no-print">
+          {registros.map((reg) => (
+            <div key={reg.id} className="bg-white dark:bg-slate-800 p-0 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
+              <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-between items-center border-b border-slate-100 dark:border-slate-700">
+                {/* TITULO TARJETA MODIFICADO */}
+                <span className="text-xs font-bold uppercase text-slate-400">
+                    {serviceKey === 'luz' ? 'Luz' : 'Agua'} Nro {reg.nroBoleta || '?'} - {formatearFecha(reg.fecha)}
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={(e) => { e.stopPropagation(); editarRegistro(reg); }} className="text-blue-500 hover:text-blue-600 p-1 rounded"><Icon name="Edit2" className="w-4 h-4"/></button>
+                  <button onClick={(e) => { e.stopPropagation(); eliminarRegistro(reg.id); }} className="text-red-400 hover:text-red-500 p-1 rounded"><Icon name="Trash2" className="w-4 h-4"/></button>
+                </div>
+              </div>
+              <div className="p-5 flex flex-col items-center text-center space-y-6">
+                <div className="w-full">
+                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">{reg.etiquetaCasa1 || 'Principal'}</p>
+                  <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{formatoPeso(reg.totalCasa1)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoCasa1} {unit}</p>
+                </div>
+                <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] font-bold uppercase text-cyan-500 mb-1 tracking-wider">{reg.domicilio || 'Secundario'}</p>
+                  <p className="text-3xl font-black text-cyan-600 dark:text-cyan-400 tracking-tight">{formatoPeso(reg.totalInquilino)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoInquilino} {unit}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
+                <span>Consumo Total: <strong>{reg.consumoTotal} {unit}</strong></span>
+                <span>Boleta: <strong>{formatoPeso(reg.totalBoleta)}</strong></span>
+              </div>
+              <button onClick={()=>abrirRecibo(reg)} className="w-full bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs py-3 flex justify-center items-center gap-2 border-t border-slate-100 dark:border-slate-700 transition-colors uppercase tracking-wide">
+                <Icon name="Eye" className="w-3 h-3" /> PINCHA PARA VER DETALLE
+              </button>
+            </div>
+          ))}
+          {registros.length === 0 && !mostrarFormulario && <div className="text-center py-10 text-slate-400">Sin registros. Pulsa + para comenzar.</div>}
+          <div className="text-center pt-8 pb-4">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V6.0 - Prorrateo GDC</p>
+          </div>
+        </div>
+      );
 
-      // --- VISTAS ---
+    // --- COMPONENTES DE SERVICIO Y MAESTRO ---
+    const ServiceView = ({ serviceKey, serviceConfig, ...props }) => {
+      const { registros, formatoPeso, eliminarRegistro, abrirRecibo, reciboSeleccionado, setReciboSeleccionado, obtenerDetalleCasa1, verReciboCasa1, setVerReciboCasa1, compartirGeneral, enviarCorreo, mostrarFormulario, setMostrarFormulario, modoEdicion, form, manejarCambio, calcularPago, setForm, editarRegistro, guardarRegistro } = props;
+      const unit = serviceConfig.unit;
+
+      return (
+        <>
+            {reciboSeleccionado && <ReciboModal reg={reciboSeleccionado} verReciboCasa1={verReciboCasa1} setVerReciboCasa1={setVerReciboCasa1} setReciboSeleccionado={setReciboSeleccionado} serviceKey={serviceKey} unit={unit} formatoPeso={formatoPeso} obtenerDetalleCasa1={obtenerDetalleCasa1} compartirGeneral={compartirGeneral} enviarCorreo={enviarCorreo} />}
+            {mostrarFormulario && !reciboSeleccionado && <Formulario form={form} manejarCambio={manejarCambio} setForm={setForm} modoEdicion={modoEdicion} setMostrarFormulario={setMostrarFormulario} guardarRegistro={guardarRegistro} serviceKey={serviceKey} formatoPeso={formatoPeso} unit={unit} calcularPago={calcularPago} />}
+            {!mostrarFormulario && !reciboSeleccionado && <Historial serviceKey={serviceKey} registros={registros} editarRegistro={editarRegistro} eliminarRegistro={eliminarRegistro} abrirRecibo={abrirRecibo} unit={unit} formatoPeso={formatoPeso} mostrarFormulario={mostrarFormulario} />}
+        </>
+      );
+    };
+
+    function EquiMaster() {
+      const [service, setService] = useState('luz'); 
+      const [darkMode, setDarkMode] = useState(false);
+
+      useEffect(() => { if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setDarkMode(true); }, []);
+      useEffect(() => { if (darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [darkMode]);
+      const toggleTheme = () => setDarkMode(!darkMode);
+
+      const luzConfig = { icon: 'Zap', color: 'blue', unit: 'kWh', localStorageKey: 'luz' };
+      const aguaConfig = { icon: 'Droplet', color: 'cyan', unit: 'm³', localStorageKey: 'agua' };
+      const currentConfig = service === 'luz' ? luzConfig : aguaConfig;
+      
+      const logic = useCalculadoraLogic(service); 
+      const { prepararNuevoCalculo } = logic;
+      const accentBgClass = service === 'luz' ? 'bg-blue-600 dark:bg-blue-900' : 'bg-cyan-600 dark:bg-cyan-900';
+
       return (
         <div className="max-w-md mx-auto min-h-screen flex flex-col bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
-          
-          {/* Header */}
-          <div className="bg-blue-600 dark:bg-blue-900 text-white p-6 pb-0 rounded-b-3xl shadow-lg no-print z-10 sticky top-0 transition-colors">
+          <div className={`${accentBgClass} text-white p-6 pb-0 rounded-b-3xl shadow-lg no-print z-10 sticky top-0 transition-colors`}>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name="Zap" className="w-6 h-6 text-yellow-300" /> EquiVolt</h1>
-                <p className="text-blue-200 text-xs">v4.3 - Prorrateo GDC</p>
+                <h1 className="text-2xl font-bold flex items-center gap-2"><Icon name={currentConfig.icon} className="w-6 h-6 text-yellow-300" /> EquiMaster</h1>
+                <p className="text-white/80 text-xs">v6.0 - Prorrateo GDC</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={toggleTheme} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"><Icon name={darkMode ? "Sun" : "Moon"} className="w-5 h-5" /></button>
-                {vistaActual === 'calculadora' && !reciboSeleccionado && (
-                  <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md transition-colors"><Icon name="Plus" className="w-6 h-6" /></button>
-                )}
+                <button onClick={prepararNuevoCalculo} className="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 shadow-md transition-colors"><Icon name="Plus" className="w-6 h-6" /></button>
               </div>
             </div>
             <div className="flex gap-6 text-sm font-medium pb-2">
-              <button onClick={() => {setVistaActual('calculadora'); setReciboSeleccionado(null);}} className={`pb-2 border-b-2 transition-colors flex gap-2 ${vistaActual === 'calculadora' ? 'border-white text-white' : 'border-transparent text-blue-300 hover:text-white'}`}><Icon name="Calculator" className="w-4 h-4" />Calculadora</button>
-              <button onClick={() => setVistaActual('ayuda')} className={`pb-2 border-b-2 transition-colors flex gap-2 ${vistaActual === 'ayuda' ? 'border-white text-white' : 'border-transparent text-blue-300 hover:text-white'}`}><Icon name="HelpCircle" className="w-4 h-4" />Ayuda</button>
+              <button onClick={() => setService('luz')} className={`pb-2 border-b-2 transition-colors flex gap-2 ${service === 'luz' ? 'border-white text-white' : 'border-transparent text-white/70 hover:text-white'}`}><Icon name="Zap" className="w-4 h-4" /> Luz</button>
+              <button onClick={() => setService('agua')} className={`pb-2 border-b-2 transition-colors flex gap-2 ${service === 'agua' ? 'border-white text-white' : 'border-transparent text-white/70 hover:text-white'}`}><Icon name="Droplet" className="w-4 h-4" /> Agua</button>
+              <button onClick={() => setService('ayuda')} className={`pb-2 border-b-2 transition-colors flex gap-2 ${service === 'ayuda' ? 'border-white text-white' : 'border-transparent text-white/70 hover:text-white'}`}><Icon name="HelpCircle" className="w-4 h-4" /> Ayuda</button>
             </div>
           </div>
-
           <div className="flex-grow p-4">
-            {vistaActual === 'ayuda' ? (
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm space-y-6 animation-fade-in border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
-                <h2 className="text-xl font-bold flex gap-2"><Icon name="CheckCircle2" className="text-green-500" /> ¿Cómo se realiza el cálculo?</h2>
-                
-                <div className="space-y-6 text-sm">
-                  
-                  {/* Tarjeta Método Híbrido */}
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-                    <h3 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
-                      <span className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 w-5 h-5 flex items-center justify-center rounded-full text-xs">1</span> Método Híbrido (Recomendado)
-                    </h3>
-                    <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">Ideal cuando se comparten gastos fijos equitativamente y solo se paga el consumo real de energía.</p>
-                    
-                    <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-blue-100 dark:border-blue-900 font-mono text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
-                      <p><strong>1. Variable (Energía):</strong> Electricidad consumida × (Tu Consumo ÷ Total kWh)</p>
-                      <p><strong>2. Fijo (El resto):</strong> (Admin + Transporte + Ajustes) ÷ 2</p>
-                      <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-1 font-bold text-blue-600 dark:text-blue-400">Total = Variable + Fijo</p>
-                    </div>
-                  </div>
-
-                  {/* Tarjeta Método Proporcional */}
-                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
-                    <h3 className="font-bold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
-                      <span className="bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 w-5 h-5 flex items-center justify-center rounded-full text-xs">2</span> Método Proporcional
-                    </h3>
-                    <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">Ideal si se considera que quien consume más debe pagar más de todo.</p>
-                    
-                    <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-purple-100 dark:border-purple-900 font-mono text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
-                      <p><strong>1. Tu Porcentaje:</strong> Tu Consumo ÷ Total kWh</p>
-                      <p><strong>2. Cálculo Total:</strong> Total Boleta × Tu Porcentaje</p>
-                      <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-1 font-bold text-purple-600 dark:text-purple-400">Total = Todo proporcional</p>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* MODAL RECIBO */}
-                {reciboSeleccionado && (
-                  <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animation-fade-in overflow-y-auto modal-overlay">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col relative my-auto border border-slate-200 dark:border-slate-800" onClick={e=>e.stopPropagation()}>
-                      <div className="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl no-print">
-                        <h3 className="font-bold flex gap-2 text-sm"><Icon name="FileText" className="w-4 h-4"/> Comprobante</h3>
-                        <button onClick={() => setReciboSeleccionado(null)} className="text-slate-400 hover:text-white"><Icon name="X" className="w-5 h-5"/></button>
-                      </div>
-                      <div className="flex border-b border-slate-200 dark:border-slate-800 no-print bg-white dark:bg-slate-900">
-                          <button onClick={() => setVerReciboCasa1(true)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>{reciboSeleccionado.etiquetaCasa1 || 'Principal'}</button>
-                          <button onClick={() => setVerReciboCasa1(false)} className={`flex-1 py-3 text-xs font-bold uppercase transition-colors ${!verReciboCasa1 ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>{reciboSeleccionado.domicilio || 'Secundario'}</button>
-                      </div>
-                      
-                      {/* AREA IMPRESION: Fondo Blanco siempre para que se vea bien en papel */}
-                      <div id="area-impresion" className="p-6 bg-white text-black">
-                        <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
-                          <h2 className="text-xl font-black text-slate-900 uppercase">Recibo de Luz</h2>
-                          <p className="text-xs text-slate-500 mt-1">Fecha: {reciboSeleccionado.fecha}</p>
-                        </div>
-                        <div className="text-center mb-6">
-                          <p className="text-[10px] text-slate-400 uppercase font-bold">Total a Pagar</p>
-                          <p className="text-4xl font-black text-slate-800 mt-1">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</p>
-                          <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-1 rounded-full mt-2 inline-block">
-                            {verReciboCasa1 ? (reciboSeleccionado.etiquetaCasa1 || 'Principal') : (reciboSeleccionado.domicilio || 'Secundario')}
-                          </span>
-                        </div>
-                        <div className="space-y-2 text-sm border-t pt-4">
-                          <div className="flex justify-between"><span className="text-slate-600">Método:</span><span className="font-bold uppercase text-xs">{reciboSeleccionado.metodoUsado}</span></div>
-                          <div className="flex justify-between"><span className="text-slate-600">Consumo:</span><span className="font-mono">{verReciboCasa1 ? reciboSeleccionado.consumoCasa1 : reciboSeleccionado.consumoInquilino} kWh</span></div>
-                          <div className="my-2 border-b"></div>
-                          
-                          {/* Desglose con NOMBRES ACTUALIZADOS */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-slate-700"><span className="capitalize">Admin. del servicio:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.admin : reciboSeleccionado.detInquilino.admin)}</span></div>
-                            <div className="flex justify-between text-slate-700"><span className="capitalize">Electricidad consumida:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.electricidad : reciboSeleccionado.detInquilino.electricidad)}</span></div>
-                            <div className="flex justify-between text-slate-700"><span className="capitalize">Transporte de Electricidad:</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.transporte : reciboSeleccionado.detInquilino.transporte)}</span></div>
-                            <div className="flex justify-between text-slate-700"><span className="capitalize">Ajustes (Mes Ant/Act):</span><span className="font-mono">{formatoPeso(verReciboCasa1 ? reciboSeleccionado.detCasa1.ajustes : reciboSeleccionado.detInquilino.ajustes)}</span></div>
-                          </div>
-
-                          <div className="flex justify-between border-t-2 border-slate-800 pt-2 mt-2 font-black text-lg"><span>TOTAL:</span><span>{formatoPeso(verReciboCasa1 ? reciboSeleccionado.totalCasa1 : reciboSeleccionado.totalInquilino)}</span></div>
-                        </div>
-                      </div>
-
-                      <div className="p-4 pt-0 space-y-2 no-print bg-white dark:bg-slate-900 rounded-b-2xl">
-                        <div className="grid grid-cols-2 gap-2">
-                            <button onClick={compartirWhatsapp} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Share2" className="w-4 h-4" /> WhatsApp</button>
-                            <button onClick={enviarCorreo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Mail" className="w-4 h-4" /> Correo</button>
-                        </div>
-                        <button onClick={() => window.print()} className="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2 rounded-lg flex justify-center gap-2 transition-colors text-xs items-center"><Icon name="Printer" className="w-4 h-4" /> Guardar PDF</button>
-                        
-                        {/* Link para cambiar correo si ya existe */}
-                        {emailDestino && (
-                            <p onClick={cambiarEmail} className="text-[10px] text-center text-slate-400 cursor-pointer hover:text-blue-500 underline mt-1">Cambiar correo guardado ({emailDestino})</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* FORMULARIO */}
-                {mostrarFormulario && !reciboSeleccionado && (
-                  <div className={cardClass}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-bold text-slate-800 dark:text-white">{modoEdicion ? 'Editar' : 'Nuevo'}</h2>
-                      <button onClick={() => setMostrarFormulario(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><Icon name="X" className="w-6 h-6" /></button>
-                    </div>
-                    <form onSubmit={guardarRegistro} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div><label className={labelClass}>Principal</label><input type="text" name="etiquetaCasa1" value={form.etiquetaCasa1} onChange={manejarCambio} className={inputClass} /></div>
-                        <div><label className={labelClass}>Secundario</label><input type="text" name="domicilio" value={form.domicilio} onChange={manejarCambio} className={inputClass} /></div>
-                      </div>
-                      
-                      {/* CONFIGURACIÓN DE CÁLCULO */}
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <label className="text-xs font-bold mb-2 block flex items-center gap-1 text-slate-700 dark:text-slate-300"><Icon name="Settings" className="w-3 h-3" /> Método de Cálculo</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button type="button" onClick={() => setForm({...form, metodoCalculo: 'hibrido'})} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'hibrido' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-                            Híbrido (50%)
-                          </button>
-                          <button type="button" onClick={() => setForm({...form, metodoCalculo: 'proporcional'})} className={`p-2 text-xs rounded-lg border font-bold transition-all ${form.metodoCalculo === 'proporcional' ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-                            Proporcional (%)
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center italic">
-                          {form.metodoCalculo === 'hibrido' ? "Fijos divididos 50/50. Energía por consumo." : "Todo dividido según % de consumo."}
-                        </p>
-                      </div>
-
-                      {/* CAMPOS DE BOLETA ACTUALIZADOS */}
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
-                        <div className="col-span-2 text-xs font-bold uppercase text-slate-400 mb-1">Datos Boleta</div>
-                        
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Administración del servicio [Ej: 1029]</label>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Transporte de Electricidad [Ej: 3875]</label>
-                        <input type="number" name="itemAdmin" value={form.itemAdmin} onChange={manejarCambio} placeholder="1029" className={inputClass} />
-                        <input type="number" name="itemTransporte" value={form.itemTransporte} onChange={manejarCambio} placeholder="3875" className={inputClass} />
-                        
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Electricidad consumida [Ej: 53351]</label>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes anterior [Ej: 26]</label>
-                        <input type="number" name="itemElectricidad" value={form.itemElectricidad} onChange={manejarCambio} placeholder="53351" className={inputClass} />
-                        <input type="number" name="itemAjusteAnterior" value={form.itemAjusteAnterior} onChange={manejarCambio} placeholder="26" className={inputClass} />
-
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400">Ajuste, Mes actual [Ej: -81]</label>
-                        <label className="block text-[10px] text-slate-500 dark:text-slate-400"> </label>
-                        <input type="number" name="itemAjusteActual" value={form.itemAjusteActual} onChange={manejarCambio} placeholder="-81" className={inputClass} />
-                        
-                        <div className="col-span-2 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200 dark:border-slate-700"><span>Total Boleta:</span><span className="text-slate-800 dark:text-slate-200">{formatoPeso(resultadoEnVivo.totalBoleta)}</span></div>
-                      </div>
-
-                      <div><label className={labelClass}>Total kWh Boleta</label><input type="number" name="consumoTotal" value={form.consumoTotal} onChange={manejarCambio} required className={inputClass} /></div>
-                      
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-2">
-                        <div className="col-span-2 text-xs font-bold uppercase text-slate-400">Lecturas Remarcador</div>
-                        <input type="number" name="lecturaAnterior" value={form.lecturaAnterior} onChange={manejarCambio} placeholder="Anterior" className={inputClass} />
-                        <input type="number" name="lecturaActual" value={form.lecturaActual} onChange={manejarCambio} placeholder="Actual" className={inputClass} />
-                      </div>
-
-                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-lg transition-colors"><Icon name="Save" className="w-5 h-5 inline mr-2" /> Guardar</button>
-                    </form>
-                  </div>
-                )}
-
-                {/* HISTORIAL (TARJETA NUEVA) */}
-                <div className="space-y-4 pb-20 no-print">
-                  {registros.map((reg) => (
-                    <div key={reg.id} className="bg-white dark:bg-slate-800 p-0 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
-                      {/* Header */}
-                      <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-between items-center border-b border-slate-100 dark:border-slate-700">
-                        <span className="text-xs font-bold uppercase text-slate-400">{reg.fecha}</span>
-                        <div className="flex gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); editarRegistro(reg); }} className="text-blue-500 hover:text-blue-600 p-1 rounded"><Icon name="Edit2" className="w-4 h-4"/></button>
-                          <button onClick={(e) => { e.stopPropagation(); eliminarRegistro(reg.id); }} className="text-red-400 hover:text-red-500 p-1 rounded"><Icon name="Trash2" className="w-4 h-4"/></button>
-                        </div>
-                      </div>
-                      
-                      {/* Cuerpo Vertical Centrado */}
-                      <div className="p-5 flex flex-col items-center text-center space-y-6">
-                        
-                        {/* 1. Principal */}
-                        <div className="w-full">
-                          <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">{reg.etiquetaCasa1 || 'Principal'}</p>
-                          <p className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{formatoPeso(reg.totalCasa1)}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoCasa1} kWh</p>
-                        </div>
-
-                        {/* 2. Secundario */}
-                        <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-700">
-                          <p className="text-[10px] font-bold uppercase text-blue-500 mb-1 tracking-wider">{reg.domicilio || 'Secundario'}</p>
-                          <p className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">{formatoPeso(reg.totalInquilino)}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{reg.consumoInquilino} kWh</p>
-                        </div>
-
-                      </div>
-
-                      {/* Footer Totales */}
-                      <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700">
-                        <span>Consumo Total: <strong>{reg.consumoTotal} kWh</strong></span>
-                        <span>Boleta: <strong>{formatoPeso(reg.totalBoleta)}</strong></span>
-                      </div>
-
-                      {/* Botón Acción */}
-                      <button onClick={()=>abrirRecibo(reg)} className="w-full bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs py-3 flex justify-center items-center gap-2 border-t border-slate-100 dark:border-slate-700 transition-colors uppercase tracking-wide">
-                        <Icon name="Eye" className="w-3 h-3" /> PINCHA PARA VER DETALLE
-                      </button>
-                    </div>
-                  ))}
-                  {registros.length === 0 && !mostrarFormulario && <div className="text-center py-10 text-slate-400">Sin registros. Pulsa + para comenzar.</div>}
-                  
-                  <div className="text-center pt-8 pb-4">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">V4.3 - Prorrateo de consumo - Hecho por GDC</p>
-                  </div>
-                </div>
-              </>
-            )}
+            {service === 'ayuda' ? <AyudaView /> : <ServiceView key={service} serviceKey={service} serviceConfig={currentConfig} {...logic} />}
           </div>
-          <InstallPrompt />
+          <InstallPrompt service={service} />
         </div>
       );
     }
 
+    const AyudaView = () => (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm space-y-6 animation-fade-in border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+            <h2 className="text-xl font-bold flex gap-2"><Icon name="CheckCircle2" className="text-green-500" /> Centro de Ayuda</h2>
+            <div className="space-y-6 text-sm">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <h3 className="font-bold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2"><Icon name="Zap" className="w-4 h-4"/> Cálculo para Luz (kWh)</h3>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">1. Método Híbrido (Recomendado):</p>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 font-mono text-[10px]"><li>**Variable (Energía):** Electricidad consumida × (Tu Consumo ÷ Total kWh)</li><li>**Fijo (50/50):** (Admin. del servicio + Transporte de Electricidad + Ajustes) ÷ 2</li></ul>
+                    <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-2 font-bold text-blue-600 dark:text-blue-400 text-xs">Total = Variable + Fijo</p>
+                </div>
+                <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800">
+                    <h3 className="font-bold text-cyan-700 dark:text-cyan-300 mb-3 flex items-center gap-2"><Icon name="Droplet" className="w-4 h-4"/> Cálculo para Agua (m³)</h3>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">1. Método Híbrido (Recomendado):</p>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 font-mono text-[10px]"><li>**Variable (% Consumo):** (Agua Potable + Recolección + Tratamiento) × % Consumo</li><li>**Fijo (50/50):** (Cargo Fijo + Reliquidación/Otros) ÷ 2</li></ul>
+                    <p className="border-t border-dashed border-slate-300 dark:border-slate-700 pt-1 mt-2 font-bold text-cyan-600 dark:text-cyan-400 text-xs">Total = Variable + Fijo</p>
+                </div>
+            </div>
+        </div>
+    );
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<CalculadoraLuz />);
+    root.render(<EquiMaster />);
   </script>
 </body>
 </html>
